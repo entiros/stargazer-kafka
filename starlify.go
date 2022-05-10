@@ -14,8 +14,8 @@ func (cfg *Config) ReadServices() error {
 	// Fetch information about services from Starlify
 	// This examples fetches a specific attribute from a specific pre-created Starlify service
 	resp, _ := client.R().
-		SetHeader("X-API-KEY", "0fe184ed-b79a-4c5b-920b-732d0e98a148.ybZTnx0iX6mQlmFV8qIROsa9F2kAYyi9TVAisjKHpbfZBeKcL5u5XGIqBLlyooB3").
-		Get("https://api.starlify.com/hypermedia/systems/336c9813-f271-4503-a14e-acc5698009cd")
+		SetHeader("X-API-KEY", cfg.Starlify.ApiKey).
+		Get(cfg.Starlify.ApiUrl + cfg.Starlify.SystemID)
 
 	err := json.Unmarshal(resp.Body(), &system)
 	if err != nil {
@@ -43,10 +43,10 @@ func (cfg *Config) CreateService(topics []string) (string, error) {
 			SetHeader("X-API-KEY", cfg.Starlify.ApiKey).
 			SetBody(&ServiceBody{Name: topic}).
 			Post(cfg.Starlify.ApiUrl + cfg.Starlify.SystemID + "/services")
+		fmt.Printf("creating topic in Starlify: %s \n", topic)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("creating topic(s) in Starlify"), nil
 	}
 	return "info: finished creating Starlify services", nil
 }
