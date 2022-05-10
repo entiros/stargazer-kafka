@@ -1,0 +1,11 @@
+# Starlify configuration
+starlify:
+  apiKey: ""
+  systemID: ""
+  apiUrl: "https://api.starlify.com/hypermedia/systems/"
+  stargazerID: ""
+
+# Kafka configuration
+kafka:
+  host: "127.0.0.1"
+  port: ""
