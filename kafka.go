@@ -60,12 +60,9 @@ func (cfg *Config) ReadTopics() {
 		topics = append(topics, s.Topic)
 	}
 
-	service, err := cfg.CreateService(topics)
+	_, err = cfg.CreateService(topics)
 	if err != nil {
 		fmt.Printf("failed to create starlify service: %s\n", err)
 		return
 	}
-
-	fmt.Println(service)
-
 }

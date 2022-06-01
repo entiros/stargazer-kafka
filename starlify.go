@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/rs/zerolog/log"
 )
 
 func (cfg *Config) ReadServices() error {
@@ -43,10 +44,11 @@ func (cfg *Config) CreateService(topics []string) (string, error) {
 			SetHeader("X-API-KEY", cfg.Starlify.ApiKey).
 			SetBody(&ServiceBody{Name: topic}).
 			Post(cfg.Starlify.ApiUrl + cfg.Starlify.SystemID + "/services")
-		fmt.Printf("creating topic in Starlify: %s \n", topic)
+		log.Info().Msgf("creating topic as a Starlify service: %s", topic)
 		if err != nil {
 			return "", err
 		}
 	}
-	return "info: finished creating Starlify services", nil
+	log.Info().Msg("created services in Starlify")
+	return "services created", nil
 }

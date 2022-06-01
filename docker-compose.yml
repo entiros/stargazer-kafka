@@ -18,9 +18,3 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
       - zookeeper
-  kafkamagic:
-    image: digitsy/kafka-magic
-    ports:
-      - '5000:80'
-    depends_on:
-      - kafka
