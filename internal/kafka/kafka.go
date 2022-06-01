@@ -1,16 +1,20 @@
-package stargazer_kafka
+package kafka
 
 import (
 	"context"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"log"
 	"os"
 	"time"
 )
 
-func (cfg *Config) CreateTopic(topic string) {
-	a, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": cfg.Kafka.Host})
+type Client struct {
+	Host string
+	Port string
+}
+
+func (client *Client) CreateTopic(topic string) {
+	a, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": client.Host})
 	if err != nil {
 		fmt.Printf("Failed to create Admin client: %s\n", err)
 		os.Exit(1)
@@ -43,26 +47,25 @@ func (cfg *Config) CreateTopic(topic string) {
 	}
 }
 
-// ReadTopics fetches all the topics from a specified kafka cluster
-func (cfg *Config) ReadTopics() {
+// GetTopics fetches all the topics from a specified kafka cluster
+func (client *Client) GetTopics() ([]string, error) {
+	// Create admin client
+	adminClient, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": client.Host})
+	if err != nil {
+		return nil, err
+	}
+
+	// Get metadata
+	metadata, err := adminClient.GetMetadata(nil, true, 100)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract topic names
 	var topics []string
-	k, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": cfg.Kafka.Host})
-	if err != nil {
-		log.Fatal("failed to connect to kafka cluster")
+	for _, topicMetadata := range metadata.Topics {
+		topics = append(topics, topicMetadata.Topic)
 	}
 
-	metadata, err := k.GetMetadata(nil, true, 100)
-	if err != nil {
-		log.Print("failed to get metadata from kafka cluster")
-	}
-
-	for _, s := range metadata.Topics {
-		topics = append(topics, s.Topic)
-	}
-
-	_, err = cfg.CreateService(topics)
-	if err != nil {
-		fmt.Printf("failed to create starlify service: %s\n", err)
-		return
-	}
+	return topics, nil
 }

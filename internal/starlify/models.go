@@ -1,8 +1,8 @@
-package stargazer_kafka
+package starlify
 
 import "time"
 
-type StarlifySystem struct {
+type System struct {
 	Type           string    `json:"type"`
 	Id             string    `json:"id"`
 	Created        time.Time `json:"created"`
@@ -119,7 +119,7 @@ type Attributes struct {
 	} `json:"links"`
 }
 
-type StarlifyService struct {
+type Service struct {
 	Type     string    `json:"type"`
 	Id       string    `json:"id"`
 	Created  time.Time `json:"created"`
@@ -183,4 +183,32 @@ type StarlifyService struct {
 		Rel  string `json:"rel"`
 		Href string `json:"href"`
 	} `json:"links"`
+}
+
+type Page struct {
+	Size          int `json:"size"`
+	TotalElements int `json:"totalElements"`
+	TotalPages    int `json:"totalPages"`
+	Number        int `json:"number"`
+}
+
+type ServicesPage struct {
+	Services []Service `json:"content"`
+	Page     Page      `json:"page"`
+}
+
+type ServiceRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+type Agent struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	AgentType string `json:"agentType"`
+	LastSeen  string `json:"lastSeen"`
+}
+
+type AgentRequest struct {
+	Details struct {
+	} `json:"details"`
 }

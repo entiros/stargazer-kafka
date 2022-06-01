@@ -1,9 +1,9 @@
 # Starlify configuration
 starlify:
   apiKey: ""
-  systemID: ""
-  apiUrl: "https://api.starlify.com/hypermedia/systems/"
-  stargazerID: ""
+  systemId: ""
+  baseUrl: "https://api.starlify.com/hypermedia"
+  agentId: ""
 
 # Kafka configuration
 kafka:
