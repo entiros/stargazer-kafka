@@ -13,8 +13,11 @@ type Config struct {
 		SystemId string `yaml:"systemId"`
 	} `yaml:"starlify"`
 	Kafka struct {
-		Host string `yaml:"host"`
-		Port string `yaml:"port"`
+		Host  string `yaml:"host"`
+		Port  string `yaml:"port"`
+		OAuth struct {
+			Token string `yaml:"token"`
+		} `yaml:"oauth"`
 	} `yaml:"kafka"`
 }
 

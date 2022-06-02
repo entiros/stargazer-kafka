@@ -9,10 +9,6 @@ import (
 )
 
 func main() {
-	//stargazerkafka.CreateTopic("test1")
-	//stargazerkafka.CreateTopic("test2")
-	//stargazerkafka.CreateTopic("test3")
-
 	// Load configuration
 	config, err := stargazerkafka.LoadConfig(os.Getenv("configFile"))
 	if err != nil {
@@ -30,8 +26,9 @@ func main() {
 
 	// Kafka Client
 	var kafkaClient = kafka.Client{
-		Host: config.Kafka.Host,
-		Port: config.Kafka.Port,
+		Host:       config.Kafka.Host,
+		Port:       config.Kafka.Port,
+		OAuthToken: config.Kafka.OAuth.Token,
 	}
 
 	// Create integration

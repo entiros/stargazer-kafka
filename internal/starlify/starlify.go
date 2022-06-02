@@ -79,20 +79,7 @@ func (starlify *Client) patch(path string, body any, returnType any) error {
 	return err
 }
 
-// GetSystem get system
-func (starlify *Client) GetSystem() (*System, error) {
-	log.Printf("Get system %s", starlify.SystemId)
-
-	var system System
-	err := starlify.get("/systems/"+starlify.SystemId, &system)
-	if err != nil {
-		return nil, err
-	}
-
-	return &system, nil
-}
-
-// GetServices get all services for system
+// GetServices will get all services for system
 func (starlify *Client) GetServices() ([]Service, error) {
 	log.Printf("Get services for system %s", starlify.SystemId)
 
@@ -131,7 +118,7 @@ func (starlify *Client) GetServices() ([]Service, error) {
 	return services, nil
 }
 
-// CreateService create and return new service
+// CreateService will create and return new service
 func (starlify *Client) CreateService(name string) (*Service, error) {
 	log.Printf("Create service '%s' in system %s", name, starlify.SystemId)
 
@@ -145,7 +132,7 @@ func (starlify *Client) CreateService(name string) (*Service, error) {
 	return &service, nil
 }
 
-// Ping will perform an agent update without details - nothing will be updated except 'lastSeen'
+// Ping will perform an agent update without data - nothing will be updated except 'lastSeen'
 func (starlify *Client) Ping() error {
 	var agent Agent
 	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{}, &agent)
@@ -157,12 +144,41 @@ func (starlify *Client) Ping() error {
 	return nil
 }
 
-//// UpdateDetails will update the agent details
-//func (starlify *Client) UpdateDetails(details any) error {
-//	var agent Agent
-//	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Details: details}, &agent)
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//}
+// GetAgent will return the Starlify agent
+func (starlify *Client) GetAgent() (*Agent, error) {
+	log.Printf("Get agent %s", starlify.AgentId)
+
+	var agent Agent
+	err := starlify.get("/agents/"+starlify.AgentId, &agent)
+	if err != nil {
+		return nil, err
+	}
+
+	return &agent, nil
+}
+
+// UpdateDetails will update the agent details
+func (starlify *Client) UpdateDetails(details Details) error {
+	log.Println("Updating details")
+	var agent Agent
+	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Details: details}, &agent)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReportError will update the error field in the Starlify agent
+func (starlify *Client) ReportError(message string) error {
+	var agent Agent
+	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Error: message}, &agent)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ClearError will Starlify agent error field to empty string
+func (starlify *Client) ClearError() error {
+	return starlify.ReportError("")
+}
