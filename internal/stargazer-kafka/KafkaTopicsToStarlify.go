@@ -11,24 +11,31 @@ import (
 )
 
 type KafkaTopicsToStarlify struct {
-	kafkaClient             *kafka.Client
-	starlifyClient          *starlify.Client
-	kafkaTopicsCache        map[string]bool
+	kafka                   *kafka.Client
+	starlify                *starlify.Client
+	topicsCache             map[string]bool
 	lastUpdateReportedError bool
 }
 
-func InitKafkaTopicsToStarlify(kafkaClient *kafka.Client, starlifyClient *starlify.Client) (*gocron.Scheduler, error) {
-	agent, err := starlifyClient.GetAgent()
+func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (*gocron.Scheduler, error) {
+	// Get agent from Starlify and verify type
+	agent, err := starlify.GetAgent()
 	if err != nil {
 		return nil, err
 	} else if agent.AgentType != "kafka" {
 		return nil, fmt.Errorf("starlify agent '%s' is of type '%s', expected 'kafka'", agent.Id, agent.AgentType)
 	}
 
+	// Get topics from Kafka to verify connection
+	_, err = kafka.GetTopics()
+	if err != nil {
+		return nil, err
+	}
+
 	var kafkaTopicsToStarlify = KafkaTopicsToStarlify{
-		kafkaClient:             kafkaClient,
-		starlifyClient:          starlifyClient,
-		kafkaTopicsCache:        make(map[string]bool),
+		kafka:                   kafka,
+		starlify:                starlify,
+		topicsCache:             make(map[string]bool),
 		lastUpdateReportedError: false,
 	}
 
@@ -38,7 +45,7 @@ func InitKafkaTopicsToStarlify(kafkaClient *kafka.Client, starlifyClient *starli
 	_, err = cron.
 		Every(5).
 		Minutes().
-		Do(starlifyClient.Ping)
+		Do(kafkaTopicsToStarlify.ping)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +67,7 @@ func (_this *KafkaTopicsToStarlify) reportError(message string) {
 	log.Println(message)
 
 	// // Report error
-	err := _this.starlifyClient.ReportError(message)
+	err := _this.starlify.ReportError(message)
 	if err != nil {
 		log.Printf("Failed to report error")
 	} else {
@@ -68,30 +75,41 @@ func (_this *KafkaTopicsToStarlify) reportError(message string) {
 	}
 }
 
+func (_this *KafkaTopicsToStarlify) ping() {
+	err := _this.starlify.Ping()
+	if err != nil {
+		log.Printf("Starlify Ping failed: %s", err.Error())
+	}
+}
+
 // createKafkaTopicsToStarlify will get topics from Kafka and create matching services in Starlify
 func (_this *KafkaTopicsToStarlify) createKafkaTopicsToStarlify() {
 	log.Println("Fetching topics from Kafka")
 
-	topics, err := _this.kafkaClient.GetTopics()
+	topics, err := _this.kafka.GetTopics()
 	if err != nil {
-		_this.reportError("Failed to get topics from Kafka")
+		_this.reportError("Failed to get topics from Kafka with error: " + err.Error())
 		return
 	}
+
+	log.Printf("%d topics received from Kafka", len(topics))
 
 	// Get topics not in cache
 	var topicsToBeCreated []string
 	for topic := range topics {
-		if !_this.kafkaTopicsCache[topic] {
+		if !_this.topicsCache[topic] {
 			topicsToBeCreated = append(topicsToBeCreated, topic)
 		}
 	}
 
 	// There are possible topics to be created
 	if len(topicsToBeCreated) > 0 {
+		log.Printf("%d topics not in local cache and will be processed", len(topicsToBeCreated))
+
 		// Get Starlify services
-		services, err := _this.starlifyClient.GetServices()
+		services, err := _this.starlify.GetServices()
 		if err != nil {
-			_this.reportError("Failed to get Starlify services")
+			_this.reportError("Failed to get Starlify services with error: " + err.Error())
 			return
 		}
 
@@ -104,30 +122,32 @@ func (_this *KafkaTopicsToStarlify) createKafkaTopicsToStarlify() {
 		for _, topic := range topicsToBeCreated {
 			// Create service if it doesn't exist in Starlify
 			if !starlifyServices[topic] {
-				_, err := _this.starlifyClient.CreateService(topic)
+				_, err := _this.starlify.CreateService(topic)
 				if err != nil {
 					log.Printf("Failed to create service '%s'", topic)
 					continue
 				}
+			} else {
+				log.Printf("Topic (service) '%s' already exists in Starlify", topic)
 			}
 
 			// Add to cache
-			_this.kafkaTopicsCache[topic] = true
+			_this.topicsCache[topic] = true
 		}
 
 		// Update details
-		err = _this.starlifyClient.UpdateDetails(starlify.Details{Topics: createTopicDetails(topics)})
+		err = _this.starlify.UpdateDetails(starlify.Details{Topics: createTopicDetails(topics)})
 		if err != nil {
-			_this.reportError("Failed to update details")
+			_this.reportError("Failed to update details with error: " + err.Error())
 			return
 		}
 	} else {
-		log.Println("No new service topics to create in Starlify")
+		log.Println("No new topics (services) to create in Starlify")
 	}
 
 	// Clear any errors reported
 	if _this.lastUpdateReportedError {
-		err = _this.starlifyClient.ClearError()
+		err = _this.starlify.ClearError()
 		if err != nil {
 			log.Printf("Failed to clear error")
 		} else {
@@ -136,12 +156,13 @@ func (_this *KafkaTopicsToStarlify) createKafkaTopicsToStarlify() {
 	}
 }
 
-func createTopicDetails(topics map[string]ck.TopicMetadata) []starlify.DetailsTopic {
-	var topicDetails = make([]starlify.DetailsTopic, len(topics))
+// createTopicDetails will return topic details in Starlify format
+func createTopicDetails(topics map[string]ck.TopicMetadata) []starlify.TopicDetails {
+	var topicDetails = make([]starlify.TopicDetails, len(topics))
 
 	var i = 0
 	for _, topic := range topics {
-		topicDetails[i] = starlify.DetailsTopic{
+		topicDetails[i] = starlify.TopicDetails{
 			Name:       topic.Topic,
 			Partitions: createPartitionDetails(topic.Partitions),
 		}
@@ -151,12 +172,13 @@ func createTopicDetails(topics map[string]ck.TopicMetadata) []starlify.DetailsTo
 	return topicDetails
 }
 
-func createPartitionDetails(partitions []ck.PartitionMetadata) []starlify.DetailsPartition {
-	var partitionDetails = make([]starlify.DetailsPartition, len(partitions))
+// createPartitionDetails will return topic partition details in Starlify format
+func createPartitionDetails(partitions []ck.PartitionMetadata) []starlify.PartitionDetails {
+	var partitionDetails = make([]starlify.PartitionDetails, len(partitions))
 
 	var i = 0
 	for _, partition := range partitions {
-		partitionDetails[i] = starlify.DetailsPartition{
+		partitionDetails[i] = starlify.PartitionDetails{
 			ID: partition.ID,
 		}
 		i++

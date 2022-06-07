@@ -2,6 +2,7 @@ package starlify
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	"log"
 )
@@ -93,7 +94,8 @@ func (starlify *Client) GetServices() ([]Service, error) {
 
 		// Get services page
 		var servicesPage ServicesPage
-		err := starlify.get("/systems/"+starlify.SystemId+"/services", &servicesPage)
+		path := fmt.Sprintf("/systems/%s/services?page=%d", starlify.SystemId, page)
+		err := starlify.get(path, &servicesPage)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +112,7 @@ func (starlify *Client) GetServices() ([]Service, error) {
 		// Add services to response
 		for _, service := range servicesPage.Services {
 			services[serviceIndex] = service
-			serviceIndex = serviceIndex + 1
+			serviceIndex++
 		}
 	}
 
@@ -161,7 +163,7 @@ func (starlify *Client) GetAgent() (*Agent, error) {
 func (starlify *Client) UpdateDetails(details Details) error {
 	log.Println("Updating details")
 	var agent Agent
-	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Details: details}, &agent)
+	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Details: &details}, &agent)
 	if err != nil {
 		return err
 	}

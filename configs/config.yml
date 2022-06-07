@@ -2,12 +2,10 @@
 starlify:
   apiKey: ""
   systemId: ""
-  baseUrl: "https://api.starlify.com/hypermedia"
   agentId: ""
 
 # Kafka configuration
 kafka:
-  host: "127.0.0.1"
-  port: ""
+  host: ""
   oauth:
     token: ""

@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	// Load configuration
-	config, err := stargazerkafka.LoadConfig(os.Getenv("configFile"))
+	// Load configuration (from file or environment variables)
+	config, err := stargazerkafka.LoadConfig()
 	if err != nil {
 		log.Println(err)
 		os.Exit(2)
@@ -27,7 +27,6 @@ func main() {
 	// Kafka Client
 	var kafkaClient = kafka.Client{
 		Host:       config.Kafka.Host,
-		Port:       config.Kafka.Port,
 		OAuthToken: config.Kafka.OAuth.Token,
 	}
 

@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    restart: unless-stopped
+    ports:
+      - '2181:2181'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    depends_on:
+      - zookeeper
+    image: bitnami/kafka:latest
+    restart: unless-stopped
+    ports:
+      - '9092:9092'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+
+  stargazer:
+    depends_on:
+      - kafka
+    image: stargazer:latest
+    restart: unless-stopped
+    environment:
+      - KAFKA_HOST=kafka:9092
+      - KAFKA_OAUTH_TOKEN=
+      - STARLIFY_APIKEY=[Starlify Agent API key]
+      - STARLIFY_AGENTID=[Starlify Agent ID]
+      - STARLIFY_SYSTEMID=[Target system ID]
