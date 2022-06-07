@@ -55,7 +55,7 @@ docker run \
 version: "3"
 services:
   stargazer:
-    image: stargazer:latest
+    image: stargazer-kafka:latest
     restart: unless-stopped
     volumes:
       - /path/to/local/config.yml:/configs/config.yaml
@@ -66,7 +66,7 @@ services:
 version: "3"
 services:
   stargazer:
-    image: stargazer:latest
+    image: stargazer-kafka:latest
     restart: unless-stopped
     environment:
       - KAFKA_HOST=[Kafka bootstrap server]
