@@ -26,7 +26,7 @@ services:
   stargazer:
     depends_on:
       - kafka
-    image: stargazer:latest
+    image: stargazer-kafka:latest
     restart: unless-stopped
     environment:
       - KAFKA_HOST=kafka:9092
