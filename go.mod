@@ -6,9 +6,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.8.2
 	github.com/go-co-op/gocron v1.13.0
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/rs/zerolog v1.26.1
 	github.com/spf13/viper v1.12.0
-	gopkg.in/yaml.v3 v3.0.0
 )
 
 require (
@@ -30,4 +28,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0 // indirect
 )
