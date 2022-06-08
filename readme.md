@@ -76,9 +76,26 @@ services:
       - STARLIFY_SYSTEMID=[Target system ID]
 ```
 
-# Local test instance
+# Testing locally
 
-A working example docker composer configuration is provided in this repo. Update the environment variables for Starlify in `docker-compose-example.yml` and start using Docker compose:
+A example docker composer configuration is provided in this repo that starts a Zookeeper, Kafka and Stargazer docker container. Update the environment variables for Starlify in `docker-compose-example.yml` and start using Docker compose:
 ```shell script
 $  docker-compose -f docker-compose-example.yml up
+```
+
+**To create a new topic in Kafka**
+
+1. Open your terminal and exec inside the Kafka container
+```shell script
+$  docker exec -it stargazer-kafka-kafka-1 bash
+```
+
+2. In the container, go to the below path
+```shell script
+$  cd /opt/bitnami/kafka
+```
+
+3. Create a topic
+```shell script
+$  bin/kafka-topics.sh --create --topic my-first-kafka-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 ```
