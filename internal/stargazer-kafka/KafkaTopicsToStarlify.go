@@ -26,6 +26,12 @@ func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (
 		return nil, fmt.Errorf("starlify agent '%s' is of type '%s', expected 'kafka'", agent.Id, agent.AgentType)
 	}
 
+	// Get services from Starlify to verify that system exists
+	_, err = starlify.GetServices()
+	if err != nil {
+		return nil, err
+	}
+
 	// Get topics from Kafka to verify connection
 	_, err = kafka.GetTopics()
 	if err != nil {
@@ -41,7 +47,7 @@ func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (
 
 	cron := gocron.NewScheduler(time.UTC)
 
-	// Ping every 5 min
+	// Ping to trigger last-seen to be updated
 	_, err = cron.
 		Every(5).
 		Minutes().
@@ -50,10 +56,10 @@ func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (
 		return nil, err
 	}
 
-	// Create Kafka topics in Starlify as services every minute
+	// Create Kafka topics in Starlify as services
 	_, err = cron.
-		Every(1).
-		Minutes().
+		Every(30).
+		Seconds().
 		Do(kafkaTopicsToStarlify.createKafkaTopicsToStarlify)
 	if err != nil {
 		return nil, err
