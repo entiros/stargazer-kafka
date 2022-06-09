@@ -15,7 +15,7 @@ func createStarlifyClient() *Client {
 	}
 
 	// Intercept Starlify client
-	gock.InterceptClient(starlify.getRestyClient().GetClient())
+	gock.InterceptClient(starlify.GetRestyClient().GetClient())
 
 	return starlify
 }

@@ -16,7 +16,7 @@ type Client struct {
 	resty    *resty.Client
 }
 
-func (starlify *Client) getRestyClient() *resty.Client {
+func (starlify *Client) GetRestyClient() *resty.Client {
 	if starlify.resty == nil {
 		starlify.resty = resty.New()
 	}
@@ -27,7 +27,7 @@ func (starlify *Client) getRestyClient() *resty.Client {
 // get performs GET request to path and return parsed response
 func (starlify *Client) get(path string, returnType any) error {
 	// GET request
-	response, err := starlify.getRestyClient().R().
+	response, err := starlify.GetRestyClient().R().
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		Get(starlify.BaseUrl + path)
 	if err != nil {
@@ -46,7 +46,7 @@ func (starlify *Client) get(path string, returnType any) error {
 // post performs POST request to path and return parsed response
 func (starlify *Client) post(path string, body any, returnType any) error {
 	// POST request
-	response, err := starlify.getRestyClient().R().
+	response, err := starlify.GetRestyClient().R().
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).
 		Post(starlify.BaseUrl + path)
@@ -66,7 +66,7 @@ func (starlify *Client) post(path string, body any, returnType any) error {
 // patch performs PATCH request to path and return parsed response
 func (starlify *Client) patch(path string, body any, returnType any) error {
 	// POST request
-	response, err := starlify.getRestyClient().R().
+	response, err := starlify.GetRestyClient().R().
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).
 		Patch(starlify.BaseUrl + path)
