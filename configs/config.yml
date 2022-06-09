@@ -1,0 +1,11 @@
+# Starlify configuration
+starlify:
+  apiKey: ""
+  systemId: ""
+  agentId: ""
+
+# Kafka configuration
+kafka:
+  host: ""
+  oauth:
+    token: ""

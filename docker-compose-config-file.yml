@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  stargazer:
+    image: stargazer-kafka:latest
+    restart: unless-stopped
+    volumes:
+      - /path/to/local/config.yml:/configs/config.yaml
