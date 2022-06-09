@@ -10,8 +10,8 @@ type Client struct {
 	adminClient *kafka.AdminClient
 }
 
-// GetAdminClient will return Kafka Admin Client
-func (_this *Client) GetAdminClient() (*kafka.AdminClient, error) {
+// getAdminClient will return Kafka Admin Client
+func (_this *Client) getAdminClient() (*kafka.AdminClient, error) {
 	if _this.adminClient == nil {
 
 		// Create admin _this
@@ -37,7 +37,7 @@ func (_this *Client) GetAdminClient() (*kafka.AdminClient, error) {
 // GetTopics fetches all the topics from a specified kafka cluster
 func (_this *Client) GetTopics() (map[string]kafka.TopicMetadata, error) {
 	// Get Kafka admin client
-	client, err := _this.GetAdminClient()
+	client, err := _this.getAdminClient()
 	if err != nil {
 		return nil, err
 	}

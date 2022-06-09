@@ -11,7 +11,6 @@ import (
 )
 
 type KafkaTopicsToStarlify struct {
-	kafka                   *kafka.Client
 	starlify                *starlify.Client
 	topicsCache             map[string]bool
 	lastUpdateReportedError bool
@@ -39,7 +38,6 @@ func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (
 	}
 
 	var kafkaTopicsToStarlify = KafkaTopicsToStarlify{
-		kafka:                   kafka,
 		starlify:                starlify,
 		topicsCache:             make(map[string]bool),
 		lastUpdateReportedError: false,
@@ -60,7 +58,7 @@ func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (
 	_, err = cron.
 		Every(30).
 		Seconds().
-		Do(kafkaTopicsToStarlify.createKafkaTopicsToStarlify)
+		Do(kafkaTopicsToStarlify.createKafkaTopicsToStarlify, kafka.GetTopics)
 	if err != nil {
 		return nil, err
 	}
@@ -89,10 +87,10 @@ func (_this *KafkaTopicsToStarlify) ping() {
 }
 
 // createKafkaTopicsToStarlify will get topics from Kafka and create matching services in Starlify
-func (_this *KafkaTopicsToStarlify) createKafkaTopicsToStarlify() {
+func (_this *KafkaTopicsToStarlify) createKafkaTopicsToStarlify(getTopics func() (map[string]ck.TopicMetadata, error)) {
 	log.Println("Fetching topics from Kafka")
 
-	topics, err := _this.kafka.GetTopics()
+	topics, err := getTopics()
 	if err != nil {
 		_this.reportError("Failed to get topics from Kafka with error: " + err.Error())
 		return
