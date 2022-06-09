@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  stargazer:
+    image: stargazer-kafka:latest
+    restart: unless-stopped
+    environment:
+      - KAFKA_HOST=kafka:9092
+      - KAFKA_OAUTH_TOKEN=
+      - STARLIFY_APIKEY=[Starlify Agent API key]
+      - STARLIFY_AGENTID=[Starlify Agent ID]
+      - STARLIFY_SYSTEMID=Target system ID
