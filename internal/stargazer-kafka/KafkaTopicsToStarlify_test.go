@@ -68,9 +68,9 @@ func createGock() *gock.Request {
 	return gock.New("http://127.0.0.1:8080/hypermedia")
 }
 
-// waitForKafkaContainer will wait (up to 1 min) for the GetTopic function to execute successfully
+// waitForKafkaContainer will wait for the GetTopic function to execute successfully
 func waitForKafkaContainer(kafkaClient *kafka.Client) {
-	for i := 0; i < 60; i++ {
+	for i := 0; i < 60*2; i++ {
 		_, err := kafkaClient.GetTopics()
 		if err == nil {
 			log.Println("Kafka container up and running!")
