@@ -83,8 +83,21 @@ A example docker composer configuration is provided in this repo that starts a Z
 Create a directory `stargazer-kafka` and copy `docker-compose-example.yml` from the repository.
 Update the environment variables in `docker-compose-example.yml` from the Starlify Kafka agent guide (https://starlify.entiros.se) and start using Docker compose:
 ```shell script
-$  docker-compose -f docker-compose-example.yml up
+# Create a stargazer-kafka directory
+$ mkdir stargazer-kafka
+$ cd stargazer-kafka
+
+# Download the example docker compose
+$ wget https://github.com/entiros/stargazer-kafka/blob/main/docker-compose-example.yml
+
+# Update Starlify environment variables with values from Starlify Kafka agent guide with your preferred editor (such as vim)
+$ vim docker-compose-example.yml
+
+# Start Zookeeper, Kafka and Kafka Stargazer agent
+$ docker-compose -f docker-compose-example.yml up
 ```
+
+When everything is started, the agent should appear "online" in Starlify!
 
 **To create a new topic in Kafka**
 
