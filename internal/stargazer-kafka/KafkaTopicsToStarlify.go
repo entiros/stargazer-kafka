@@ -7,6 +7,7 @@ import (
 	"github.com/entiros/stargazer-kafka/internal/starlify"
 	"github.com/go-co-op/gocron"
 	"log"
+	"sort"
 	"time"
 )
 
@@ -172,6 +173,11 @@ func createTopicDetails(topics map[string]ck.TopicMetadata) []starlify.TopicDeta
 		}
 		i++
 	}
+
+	// Sort by name
+	sort.Slice(topicDetails, func(i, j int) bool {
+		return topicDetails[i].Name < topicDetails[j].Name
+	})
 
 	return topicDetails
 }
