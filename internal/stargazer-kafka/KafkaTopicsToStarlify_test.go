@@ -74,7 +74,7 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 	// Details will be updated
 	createGock().
 		Patch("/agents/agent-id-123").
-		//MatchType("json").
+		MatchType("json").
 		JSON(starlify.AgentRequest{Details: &starlify.Details{Topics: []starlify.TopicDetails{
 			{
 				Name: "Topic_1",
