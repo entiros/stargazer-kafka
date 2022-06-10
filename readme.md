@@ -101,7 +101,7 @@ When everything is started, the agent should appear "online" in Starlify!
 
 **To create a new topic in Kafka**
 
-1. Open your terminal in the same directory as you above (`stargazer-kafka`), and exec inside the Kafka container using the command:
+1. Open your terminal in the same directory as above (`stargazer-kafka`), and exec inside the Kafka container using the command:
 ```shell script
 $ docker-compose -f docker-compose-example.yml exec kafka bash
 ```
