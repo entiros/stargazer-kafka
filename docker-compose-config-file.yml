@@ -2,7 +2,7 @@ version: "3"
 
 services:
   stargazer:
-    image: stargazer-kafka:latest
+    image: starlify/stargazer-kafka:latest
     restart: unless-stopped
     volumes:
       - /path/to/local/config.yml:/configs/config.yaml
