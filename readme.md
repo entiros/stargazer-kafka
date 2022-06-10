@@ -47,7 +47,7 @@ $ ./stargazer-kafka /path/to/local/config.yml
 ```shell script
 docker run \
     --volume=/path/to/local/config.yml:/configs/config.yaml \
-    stargazer-kafka:latest
+    starlify/stargazer-kafka:latest
 ```
 
 ## Docker compose using configuration file
@@ -55,7 +55,7 @@ docker run \
 version: "3"
 services:
   stargazer:
-    image: stargazer-kafka:latest
+    image: starlify/stargazer-kafka:latest
     restart: unless-stopped
     volumes:
       - /path/to/local/config.yml:/configs/config.yaml
@@ -66,7 +66,7 @@ services:
 version: "3"
 services:
   stargazer:
-    image: stargazer-kafka:latest
+    image: starlify/stargazer-kafka:latest
     restart: unless-stopped
     environment:
       - KAFKA_HOST=[Kafka bootstrap server]
