@@ -78,7 +78,10 @@ services:
 
 # Testing locally
 
-A example docker composer configuration is provided in this repo that starts a Zookeeper, Kafka and Stargazer docker container. Update the environment variables for Starlify in `docker-compose-example.yml` and start using Docker compose:
+A example docker composer configuration is provided in this repo that starts a Zookeeper, Kafka and Stargazer docker container.
+
+Create a directory `stargazer-kafka` and copy `docker-compose-example.yml` from the repository.
+Update the environment variables in `docker-compose-example.yml` from the Starlify Kafka agent guide (https://starlify.entiros.se) and start using Docker compose:
 ```shell script
 $  docker-compose -f docker-compose-example.yml up
 ```
