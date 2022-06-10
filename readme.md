@@ -42,7 +42,7 @@ KAFKA_OAUTH_TOKEN=[OAUTH token or empty]
 $ ./stargazer-kafka /path/to/local/config.yml
 ```
 
-# Using the Kafka Stargazer agent image
+# Using the Kafka Stargazer agent Docker image
 
 ```shell script
 docker run \
