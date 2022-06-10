@@ -27,6 +27,8 @@ func createGock() *gock.Request {
 }
 
 func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
+	defer gock.Off()
+
 	starlifyClient := createStarlifyClient()
 
 	kafkaTopicsToStarlify := KafkaTopicsToStarlify{
@@ -75,20 +77,19 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 	createGock().
 		Patch("/agents/agent-id-123").
 		MatchType("json").
-		JSON(starlify.AgentRequest{Details: &starlify.Details{Topics: []starlify.TopicDetails{
-			{
-				Name: "Topic_1",
-				Partitions: []starlify.PartitionDetails{
-					{ID: 0},
-				},
-			},
-			{
-				Name: "Topic_2",
-				Partitions: []starlify.PartitionDetails{
-					{ID: 0},
-				},
-			},
-		}}}).
+		JSON(starlify.AgentRequest{
+			Error: "",
+			Details: &starlify.Details{
+				Topics: []starlify.TopicDetails{
+					{
+						Name:       "Topic_1",
+						Partitions: []starlify.PartitionDetails{{ID: 0}},
+					},
+					{
+						Name:       "Topic_2",
+						Partitions: []starlify.PartitionDetails{{ID: 0}},
+					},
+				}}}).
 		Reply(200).
 		JSON(starlify.Agent{Id: "agent-id-123", Name: "Test agent", AgentType: "kafka"})
 
