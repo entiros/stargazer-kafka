@@ -4,7 +4,7 @@ The Kafka Stargazer Agent is used to create services in Starlify matching the to
 
 # Setup
 
-Follow the _Install Kafka Stargazer agent_ guide at https://starlify.entiros.se. Take the properties in the final step and use the to configure your Kafka Stargazer agent (see below).
+Follow the _Install Kafka Stargazer agent_ guide at https://starlify.entiros.se. Take the properties in the final step and use the to configure your Kafka Stargazer agent (see below). More guidance on how to do the installation and connect it to Starlify can be found in our Help Center [here](https://starlify.entiros.com/help-center/WorkInStarlify#stargazer).
 
 # Configuration
 
