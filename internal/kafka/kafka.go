@@ -1,6 +1,8 @@
 package kafka
 
 import (
+	"context"
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
@@ -11,33 +13,33 @@ type Client struct {
 }
 
 // getAdminClient will return Kafka Admin Client
-func (_this *Client) getAdminClient() (*kafka.AdminClient, error) {
-	if _this.adminClient == nil {
+func (c *Client) getAdminClient() (*kafka.AdminClient, error) {
+	if c.adminClient == nil {
 
 		// Create admin _this
-		adminClient, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": _this.Host})
+		adminClient, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": c.Host})
 		if err != nil {
 			return nil, err
 		}
 
 		// Set OAUTH token
-		if _this.OAuthToken != "" {
-			err = adminClient.SetOAuthBearerToken(kafka.OAuthBearerToken{TokenValue: _this.OAuthToken})
+		if c.OAuthToken != "" {
+			err = adminClient.SetOAuthBearerToken(kafka.OAuthBearerToken{TokenValue: c.OAuthToken})
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		_this.adminClient = adminClient
+		c.adminClient = adminClient
 	}
 
-	return _this.adminClient, nil
+	return c.adminClient, nil
 }
 
 // GetTopics fetches all the topics from a specified kafka cluster
-func (_this *Client) GetTopics() (map[string]kafka.TopicMetadata, error) {
+func (c *Client) GetTopics() (map[string]kafka.TopicMetadata, error) {
 	// Get Kafka admin client
-	client, err := _this.getAdminClient()
+	client, err := c.getAdminClient()
 	if err != nil {
 		return nil, err
 	}
@@ -49,4 +51,24 @@ func (_this *Client) GetTopics() (map[string]kafka.TopicMetadata, error) {
 	}
 
 	return metadata.Topics, nil
+}
+
+// GetTopics fetches all the topics from a specified kafka cluster
+func (c *Client) CreateTopic(topicName string) (string, error) {
+	// Get Kafka admin client
+	client, err := c.getAdminClient()
+	if err != nil {
+		return "", err
+	}
+
+	// Creatae a topic in Kafka
+	_, err = client.CreateTopics(context.Background(), []kafka.TopicSpecification{
+		{Topic: topicName, NumPartitions: 1},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// TODO: Figure out what we should return here
+	return "topic created", nil
 }
