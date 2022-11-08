@@ -69,20 +69,20 @@ func InitKafkaTopicsToStarlify(kafka *kafka.Client, starlify *starlify.Client) (
 }
 
 // reportError will send error message to Starlify and mark last update to have reported error.
-func (_this *KafkaTopicsToStarlify) reportError(message string) {
+func (k *KafkaTopicsToStarlify) reportError(message string) {
 	log.Println(message)
 
 	// // Report error
-	err := _this.starlify.ReportError(message)
+	err := k.starlify.ReportError(message)
 	if err != nil {
 		log.Printf("Failed to report error")
 	} else {
-		_this.lastUpdateReportedError = true
+		k.lastUpdateReportedError = true
 	}
 }
 
-func (_this *KafkaTopicsToStarlify) ping() {
-	err := _this.starlify.Ping()
+func (k *KafkaTopicsToStarlify) ping() {
+	err := k.starlify.Ping()
 	if err != nil {
 		log.Printf("Starlify Ping failed: %s", err.Error())
 	}
