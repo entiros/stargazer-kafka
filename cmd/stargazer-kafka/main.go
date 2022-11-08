@@ -1,11 +1,12 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/entiros/stargazer-kafka/internal/kafka"
 	stargazerkafka "github.com/entiros/stargazer-kafka/internal/stargazer-kafka"
 	"github.com/entiros/stargazer-kafka/internal/starlify"
-	"log"
-	"os"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 	}
 
 	// Starlify client
-	var starlifyClient = starlify.Client{
+	starlifyClient := starlify.Client{
 		BaseUrl:  config.Starlify.BaseUrl,
 		ApiKey:   config.Starlify.ApiKey,
 		AgentId:  config.Starlify.AgentId,
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	// Kafka Client
-	var kafkaClient = kafka.Client{
+	kafkaClient := kafka.Client{
 		Host:       config.Kafka.Host,
 		OAuthToken: config.Kafka.OAuth.Token,
 	}

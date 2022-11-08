@@ -6,16 +6,16 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
+// Client holds the connection details for the Kafka instance.
 type Client struct {
 	Host        string
 	OAuthToken  string
 	adminClient *kafka.AdminClient
 }
 
-// getAdminClient will return Kafka Admin Client
+// getAdminClient will return Kafka Admin Client.
 func (c *Client) getAdminClient() (*kafka.AdminClient, error) {
 	if c.adminClient == nil {
-
 		// Create admin _this
 		adminClient, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": c.Host})
 		if err != nil {
@@ -36,7 +36,7 @@ func (c *Client) getAdminClient() (*kafka.AdminClient, error) {
 	return c.adminClient, nil
 }
 
-// GetTopics fetches all the topics from a specified kafka cluster
+// GetTopics fetches all the topics from a specified kafka cluster.
 func (c *Client) GetTopics() (map[string]kafka.TopicMetadata, error) {
 	// Get Kafka admin client
 	client, err := c.getAdminClient()
@@ -53,16 +53,16 @@ func (c *Client) GetTopics() (map[string]kafka.TopicMetadata, error) {
 	return metadata.Topics, nil
 }
 
-// GetTopics fetches all the topics from a specified kafka cluster
+// CreateTopic fetches all the topics from a specified kafka cluster.
 func (c *Client) CreateTopic(topicName string) (string, error) {
-	// Get Kafka admin client
-	client, err := c.getAdminClient()
+	// Get Kafka admin kafkaClient
+	kafkaClient, err := c.getAdminClient()
 	if err != nil {
 		return "", err
 	}
 
 	// Creatae a topic in Kafka
-	_, err = client.CreateTopics(context.Background(), []kafka.TopicSpecification{
+	_, err = kafkaClient.CreateTopics(context.Background(), []kafka.TopicSpecification{
 		{Topic: topicName, NumPartitions: 1},
 	})
 	if err != nil {

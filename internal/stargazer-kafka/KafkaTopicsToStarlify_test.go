@@ -1,11 +1,12 @@
 package stargazer_kafka
 
 import (
+	"testing"
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/entiros/stargazer-kafka/internal/starlify"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/h2non/gock.v1"
-	"testing"
 )
 
 func createStarlifyClient() *starlify.Client {
@@ -41,7 +42,7 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 		Post("/systems/system-id-123/services")
 
 	// For first execution, no topics is available
-	kafkaTopicsToStarlify.createKafkaTopicsToStarlify(func() (map[string]kafka.TopicMetadata, error) {
+	kafkaTopicsToStarlify.createTopics(func() (map[string]kafka.TopicMetadata, error) {
 		return map[string]kafka.TopicMetadata{}, nil
 	})
 
@@ -89,12 +90,14 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 						Name:       "Topic_2",
 						Partitions: []starlify.PartitionDetails{{ID: 0}},
 					},
-				}}}).
+				},
+			},
+		}).
 		Reply(200).
 		JSON(starlify.Agent{Id: "agent-id-123", Name: "Test agent", AgentType: "kafka"})
 
 	// Run with two topics available in Kafka
-	kafkaTopicsToStarlify.createKafkaTopicsToStarlify(func() (map[string]kafka.TopicMetadata, error) {
+	kafkaTopicsToStarlify.createTopics(func() (map[string]kafka.TopicMetadata, error) {
 		return map[string]kafka.TopicMetadata{
 			"Topic_1": {
 				Topic: "Topic_1",
