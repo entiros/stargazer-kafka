@@ -110,7 +110,6 @@ func (c *Client) GetTopics() (kadm.TopicDetails, error) {
 
 // CreateTopic fetches all the topics from a specified kafka cluster.
 func (c *Client) CreateTopic(topicName string) (string, error) {
-
 	ctx := context.Background()
 
 	servers, err := msk.GetMSKIamBootstrap(ctx, c.Host)

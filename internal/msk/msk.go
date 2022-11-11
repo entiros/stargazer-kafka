@@ -30,7 +30,6 @@ func GetMSKIamBootstrap(ctx context.Context, clusterArn string) ([]string, error
 
 	//log.Logger.Debugf("Got bootstrap brokers: %v", *a.BootstrapBrokerStringPublicSaslIam)
 	return strings.Split(*a.BootstrapBrokerStringPublicSaslIam, ","), nil
-
 }
 
 func getMSKClient(ctx context.Context) (*kafka.Client, error) {
@@ -45,5 +44,4 @@ func getMSKClient(ctx context.Context) (*kafka.Client, error) {
 
 	client := kafka.NewFromConfig(cfg)
 	return client, nil
-
 }

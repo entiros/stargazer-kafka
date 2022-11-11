@@ -1,6 +1,7 @@
 package starlify
 
 import (
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/h2non/gock.v1"
 	"reflect"
 	"testing"
@@ -383,4 +384,27 @@ func TestClient_UpdateDetails(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClientGet(t *testing.T) {
+	type testCase struct {
+		Name string
+
+		Client *Client
+
+		Path       string
+		ReturnType any
+
+		ExpectedError error
+	}
+
+	validate := func(t *testing.T, tc *testCase) {
+		t.Run(tc.Name, func(t *testing.T) {
+			actualError := tc.Client.get(tc.Path, tc.ReturnType)
+
+			assert.Equal(t, tc.ExpectedError, actualError)
+		})
+	}
+
+	validate(t, &testCase{})
 }
