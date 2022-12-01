@@ -15,10 +15,13 @@ type Config struct {
 		SystemId string `yaml:"systemId"`
 	} `yaml:"starlify"`
 	Kafka struct {
-		Host  string `yaml:"host"`
-		OAuth struct {
-			Token string `yaml:"token"`
-		} `yaml:"oauth"`
+		Host string `yaml:"host"`
+		Type string `yaml:"type"`
+		Auth struct {
+			OAuth struct {
+				Token string `yaml:"token"`
+			} `yaml:"oauth"`
+		} `yaml:"auth"`
 	} `yaml:"kafka"`
 }
 
@@ -32,6 +35,7 @@ func LoadConfig() (*Config, error) {
 
 	// Default Kafka properties
 	viper.SetDefault("kafka.host", "127.0.0.1:9092")
+	viper.SetDefault("kafka.type", "msk")
 	viper.SetDefault("kafka.oauth.token", "")
 
 	// Override properties with upper case environment variable of property name with . replaced with _

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	awsdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
-	"github.com/entiros/stargazer-kafka/internal/config"
+	"github.com/entiros/stargazer-kafka/internal/aws"
 
 	"strings"
 )
@@ -35,7 +35,7 @@ func GetMSKIamBootstrap(ctx context.Context, clusterArn string) ([]string, error
 func getMSKClient(ctx context.Context) (*kafka.Client, error) {
 
 	// Load the Shared AWS Configuration (~/.aws/config)
-	cfg, err := config.GetAWSConfig(ctx)
+	cfg, err := aws.GetAWSConfig(ctx)
 	if err != nil {
 		return nil, err
 	}

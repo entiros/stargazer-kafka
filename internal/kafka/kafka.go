@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/entiros/stargazer-kafka/internal/msk"
-	"github.com/twmb/franz-go/pkg/kadm"
-	"github.com/twmb/franz-go/pkg/kgo"
 	"log"
 	"net"
 	"time"
+
+	"github.com/entiros/stargazer-kafka/internal/msk"
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	faws "github.com/twmb/franz-go/pkg/sasl/aws"
@@ -18,12 +19,12 @@ import (
 // Client holds the connection details for the Kafka instance.
 type Client struct {
 	Host        string
+	Type        string
 	OAuthToken  string
 	adminClient *kadm.Client
 }
 
 func (c *Client) createAdminClient(bootstrapServers []string) (*kadm.Client, error) {
-
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
@@ -49,7 +50,6 @@ func (c *Client) createAdminClient(bootstrapServers []string) (*kadm.Client, err
 
 		kgo.Dialer((&tls.Dialer{NetDialer: &net.Dialer{Timeout: 10 * time.Second}}).DialContext),
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,6 @@ func (c *Client) createAdminClient(bootstrapServers []string) (*kadm.Client, err
 }
 
 func (c *Client) createClient(bootstrapServers []string) (*kgo.Client, error) {
-
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
@@ -87,7 +86,6 @@ func (c *Client) createClient(bootstrapServers []string) (*kgo.Client, error) {
 
 // GetTopics fetches all the topics from a specified kafka cluster.
 func (c *Client) GetTopics() (kadm.TopicDetails, error) {
-
 	servers, err := msk.GetMSKIamBootstrap(context.Background(), c.Host)
 	if err != nil {
 		fmt.Println("failed to get MSK bootstrap servers")

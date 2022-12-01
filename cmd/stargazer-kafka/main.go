@@ -28,7 +28,8 @@ func main() {
 	// Kafka Client
 	kafkaClient := kafka.Client{
 		Host:       config.Kafka.Host,
-		OAuthToken: config.Kafka.OAuth.Token,
+		Type:       config.Kafka.Type,
+		OAuthToken: config.Kafka.Auth.OAuth.Token,
 	}
 
 	// Create integration
