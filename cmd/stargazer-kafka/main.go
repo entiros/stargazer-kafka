@@ -14,7 +14,7 @@ import (
 func main() {
 
 	if len(os.Args) < 2 {
-		fmt.Println("start with config file name of config directory")
+		fmt.Println("Start with config file name of config directory")
 		os.Exit(1)
 	}
 
