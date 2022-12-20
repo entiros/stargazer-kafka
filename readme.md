@@ -12,30 +12,8 @@ Kafka Stargazer agent can be configured using a configuration file or environmen
 
 ## Configuration file
 **Example**
-```yaml
-# Starlify configuration
-starlify:
-  apiKey: "[Starlify Agent API key]"
-  agentId: "[Starlify Agent ID]"
-  systemId: "[Target system ID]"
+See in /configs
 
-# Kafka configuration
-kafka:
-  host: "[Kafka bootstrap server]"
-  oauth:
-    token: "[OAUTH token or empty]"
-```
-
-## Environment properties
-
-```
-STARLIFY_APIKEY=[Starlify Agent API key]
-STARLIFY_SYSTEMID=[Starlify Agent ID]
-STARLIFY_AGENTID=[Target system ID]
-
-KAFKA_HOST=[Kafka bootstrap server]
-KAFKA_OAUTH_TOKEN=[OAUTH token or empty]
-```
 
 # Using the Kafka Stargazer agent 
 ```shell script

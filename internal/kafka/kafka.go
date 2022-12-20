@@ -3,12 +3,12 @@ package kafka
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
-	"log"
+	"github.com/twmb/franz-go/pkg/sasl"
+	"github.com/twmb/franz-go/pkg/sasl/oauth"
+	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"net"
 	"time"
 
-	"github.com/entiros/stargazer-kafka/internal/msk"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 
@@ -16,89 +16,135 @@ import (
 	faws "github.com/twmb/franz-go/pkg/sasl/aws"
 )
 
-// Client holds the connection details for the Kafka instance.
 type Client struct {
-	Host        string
-	Type        string
-	OAuthToken  string
-	adminClient *kadm.Client
+	Hosts      []string
+	AuthMethod sasl.Mechanism
+	AWSSession func() *session.Session
 }
 
-func (c *Client) createAdminClient(bootstrapServers []string) (*kadm.Client, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
+func (k *Client) Client() (*kgo.Client, error) {
+	return createClient(k.Hosts, k.AuthMethod)
+}
+
+func (k *Client) AdminClient() (*kadm.Client, error) {
+
+	client, err := createClient(k.Hosts, k.AuthMethod)
+	return kadm.NewClient(client), err
+
+}
+
+func NewKafkaClient(options ...func(*Client)) *Client {
+
+	c := &Client{}
+	for _, opt := range options {
+		opt(c)
 	}
+	return c
 
-	log.Printf("Getting admin client. Bootstrap: %v\n", bootstrapServers)
-	kgoClient, err := kgo.NewClient(
-		kgo.SeedBrokers(bootstrapServers...),
+}
 
-		kgo.SASL(faws.ManagedStreamingIAM(func(ctx context.Context) (faws.Auth, error) {
-			val, err := sess.Config.Credentials.GetWithContext(ctx)
+func WithBootstrapServers(hosts ...string) func(*Client) {
+
+	return func(client *Client) {
+		client.Hosts = hosts
+	}
+}
+
+func WithSession(foo func() *session.Session) func(client *Client) {
+	return func(client *Client) {
+		client.AWSSession = foo
+	}
+}
+
+func Session() *session.Session {
+	s, _ := session.NewSession()
+	return s
+}
+
+func WithOAuth(token string) func(client *Client) {
+	return func(client *Client) {
+		client.AuthMethod = oauth.Auth{
+			Token: token,
+		}.AsMechanism()
+	}
+}
+
+func WithPassword(username string, password string) func(client *Client) {
+	return func(client *Client) {
+		client.AuthMethod = plain.Auth{
+			User: username,
+			Pass: password,
+		}.AsMechanism()
+	}
+}
+
+func WithIAM(accessKey string, secret string) func(client *Client) {
+
+	return func(client *Client) {
+
+		client.AuthMethod = faws.ManagedStreamingIAM(func(ctx context.Context) (faws.Auth, error) {
+			val, err := client.AWSSession().Config.Credentials.GetWithContext(ctx)
 			if err != nil {
 				return faws.Auth{}, err
 			}
 
-			return faws.Auth{
-				AccessKey:    val.AccessKeyID,
-				SecretKey:    val.SecretAccessKey,
-				SessionToken: val.SessionToken,
-				UserAgent:    "entiros/kafka/v1.0.0",
-			}, nil
-		})),
+			var accessKeyId string
+			var secretAccessKey string
+			if accessKey != "" {
+				accessKeyId = accessKey
+			} else {
+				accessKeyId = val.AccessKeyID
+			}
 
-		kgo.Dialer((&tls.Dialer{NetDialer: &net.Dialer{Timeout: 10 * time.Second}}).DialContext),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return kadm.NewClient(kgoClient), nil
-}
-
-func (c *Client) createClient(bootstrapServers []string) (*kgo.Client, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-
-	return kgo.NewClient(
-		kgo.SeedBrokers(bootstrapServers...),
-
-		kgo.SASL(faws.ManagedStreamingIAM(func(ctx context.Context) (faws.Auth, error) {
-			val, err := sess.Config.Credentials.GetWithContext(ctx)
-			if err != nil {
-				return faws.Auth{}, err
+			if secret != "" {
+				secretAccessKey = secret
+			} else {
+				secretAccessKey = val.SecretAccessKey
 			}
 
 			return faws.Auth{
-				AccessKey:    val.AccessKeyID,
-				SecretKey:    val.SecretAccessKey,
+				AccessKey:    accessKeyId,
+				SecretKey:    secretAccessKey,
 				SessionToken: val.SessionToken,
 				UserAgent:    "entiros/kafka/v1.0.0",
 			}, nil
-		})),
+		})
+	}
+}
 
-		kgo.Dialer((&tls.Dialer{NetDialer: &net.Dialer{Timeout: 10 * time.Second}}).DialContext),
-	)
+func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Client, error) {
+
+	var opts []kgo.Opt
+
+	opts = append(opts, kgo.SeedBrokers(bootstrapServers...))
+	if authMethod != nil {
+		opts = append(opts, kgo.SASL(authMethod))
+		opts = append(opts, kgo.Dialer((&tls.Dialer{NetDialer: &net.Dialer{Timeout: 60 * time.Second}}).DialContext))
+	}
+
+	return kgo.NewClient(opts...)
+
+}
+
+func (c *Client) AllTopics(ctx context.Context) func() (kadm.TopicDetails, error) {
+
+	return func() (kadm.TopicDetails, error) {
+		return c.GetAllTopics(ctx)
+	}
+
 }
 
 // GetTopics fetches all the topics from a specified kafka cluster.
-func (c *Client) GetTopics() (kadm.TopicDetails, error) {
-	servers, err := msk.GetMSKIamBootstrap(context.Background(), c.Host)
-	if err != nil {
-		fmt.Println("failed to get MSK bootstrap servers")
-	}
+func (c *Client) GetAllTopics(ctx context.Context) (kadm.TopicDetails, error) {
 
 	// Get Kafka admin client
-	client, err := c.createAdminClient(servers)
+	client, err := c.AdminClient()
 	if err != nil {
 		return nil, err
 	}
 
 	// Get metadata
-	metadata, err := client.Metadata(nil)
+	metadata, err := client.Metadata(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,26 +152,78 @@ func (c *Client) GetTopics() (kadm.TopicDetails, error) {
 	return metadata.Topics, nil
 }
 
+// GetTopics fetches all the topics from a specified kafka cluster.
+func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
+
+	// Get Kafka admin client
+	client, err := c.AdminClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get metadata
+	metadata, err := client.Metadata(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadata.Topics, nil
+}
+
+// GetTopics fetches all the topics from a specified kafka cluster.
+func (c *Client) Ping(ctx context.Context) error {
+
+	// Get Kafka admin client
+	client, err := c.AdminClient()
+	if err != nil {
+		return nil
+	}
+
+	// Get metadata
+	_, err = client.Metadata(ctx)
+
+	return err
+}
+
 // CreateTopic fetches all the topics from a specified kafka cluster.
-func (c *Client) CreateTopic(topicName string) (string, error) {
-	ctx := context.Background()
+func (c *Client) CreateTopics(ctx context.Context, topics ...string) error {
 
-	servers, err := msk.GetMSKIamBootstrap(ctx, c.Host)
-	if err != nil {
-		fmt.Println("failed to get MSK bootstrap servers")
+	if len(topics) == 0 {
+		return nil
 	}
-
 	// Get Kafka admin kafkaClient
-	kafkaClient, err := c.createAdminClient(servers)
+	kafkaClient, err := c.AdminClient()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	_, err = kafkaClient.CreateTopics(ctx, 1, 1, nil, topicName)
+	_, err = kafkaClient.CreateTopics(ctx, 1, 1, nil, topics...)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// TODO: Figure out what we should return here
-	return "topic created", nil
+	return nil
+}
+
+// CreateTopic fetches all the topics from a specified kafka cluster.
+func (c *Client) DeleteTopics(ctx context.Context, topics ...string) error {
+
+	if len(topics) == 0 {
+		return nil
+	}
+
+	// Get Kafka admin kafkaClient
+	kafkaClient, err := c.AdminClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = kafkaClient.DeleteTopics(ctx, topics...)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Figure out what we should return here
+	return nil
 }

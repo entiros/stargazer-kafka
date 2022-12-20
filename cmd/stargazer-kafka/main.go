@@ -1,44 +1,68 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"github.com/entiros/stargazer-kafka/internal/config"
+	"github.com/entiros/stargazer-kafka/internal/system"
 	"log"
 	"os"
-
-	"github.com/entiros/stargazer-kafka/internal/kafka"
-	stargazerkafka "github.com/entiros/stargazer-kafka/internal/stargazer-kafka"
-	"github.com/entiros/stargazer-kafka/internal/starlify"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	// Load configuration (from file or environment variables)
-	config, err := stargazerkafka.LoadConfig()
+
+	if len(os.Args) < 2 {
+		fmt.Println("start with config file name of config directory")
+		os.Exit(1)
+	}
+
+	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	info, err := os.Stat(os.Args[1])
 	if err != nil {
-		log.Println(err)
-		os.Exit(2)
+		log.Fatal(err)
 	}
 
-	// Starlify client
-	starlifyClient := starlify.Client{
-		BaseUrl:  config.Starlify.BaseUrl,
-		ApiKey:   config.Starlify.ApiKey,
-		AgentId:  config.Starlify.AgentId,
-		SystemId: config.Starlify.SystemId,
+	if info.IsDir() {
+		configFiles, err := config.GetConfigs(info.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		go func() {
+			err := config.WatchConfigs(info.Name(), func(newFiles []string) {
+				log.Printf("Config files: %v", newFiles)
+
+				addMe, deleteMe := config.Diff(newFiles, configFiles)
+
+				for _, c := range deleteMe {
+					system.DeleteSystem(ctx, c)
+					config.DeleteString(c, configFiles)
+				}
+
+				for _, c := range addMe {
+					system.AddSystem(ctx, c)
+					configFiles = append(configFiles, c)
+				}
+
+			})
+			if err != nil {
+				log.Println(err)
+			}
+		}()
+
+	} else {
+		system.AddSystem(ctx, info.Name())
 	}
 
-	// Kafka Client
-	kafkaClient := kafka.Client{
-		Host:       config.Kafka.Host,
-		Type:       config.Kafka.Type,
-		OAuthToken: config.Kafka.Auth.OAuth.Token,
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			break loop
+		}
 	}
 
-	// Create integration
-	kafkaTopicsToStarlify, err := stargazerkafka.InitKafkaTopicsToStarlify(&kafkaClient, &starlifyClient)
-	if err != nil {
-		log.Println(err)
-		os.Exit(2)
-	}
-
-	// Start
-	kafkaTopicsToStarlify.StartBlocking()
 }

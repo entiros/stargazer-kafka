@@ -17,8 +17,6 @@ func GetMSKIamBootstrap(ctx context.Context, clusterArn string) ([]string, error
 		return []string{}, err
 	}
 
-	//log.Logger.Debugf("Getting bootstrap brokers for: %s", clusterArn)
-
 	a, err := client.GetBootstrapBrokers(
 		ctx,
 		&kafka.GetBootstrapBrokersInput{ClusterArn: awsdk.String(clusterArn)},
@@ -28,7 +26,6 @@ func GetMSKIamBootstrap(ctx context.Context, clusterArn string) ([]string, error
 		return []string{}, fmt.Errorf("failed to get bootstrap brokers from MSK: %v", err)
 	}
 
-	//log.Logger.Debugf("Got bootstrap brokers: %v", *a.BootstrapBrokerStringPublicSaslIam)
 	return strings.Split(*a.BootstrapBrokerStringPublicSaslIam, ","), nil
 }
 
@@ -39,8 +36,6 @@ func getMSKClient(ctx context.Context) (*kafka.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//log.Logger.Debugf("Using AWS config: %+v", cfg)
 
 	client := kafka.NewFromConfig(cfg)
 	return client, nil
