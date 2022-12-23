@@ -2,14 +2,12 @@ package system
 
 import (
 	"context"
-	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/config"
 	"github.com/entiros/stargazer-kafka/internal/kafka"
 	stargazerkafka "github.com/entiros/stargazer-kafka/internal/stargazer-kafka"
 	"github.com/entiros/stargazer-kafka/internal/starlify"
 	"log"
 	"os"
-	"time"
 )
 
 type System struct {
@@ -17,6 +15,7 @@ type System struct {
 	cancel context.CancelFunc
 	ctx    context.Context
 	file   string
+	ks     *stargazerkafka.KafkaTopicsToStarlify
 }
 
 var systems map[string]*System
@@ -25,39 +24,7 @@ func init() {
 	systems = make(map[string]*System)
 }
 
-func AddSystem(ctx context.Context, c string) (*System, error) {
-
-	if _, ok := systems[c]; !ok {
-		return nil, fmt.Errorf("system %s exists already", c)
-	}
-
-	s, err := NewSystem(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-
-	systems[c] = s
-	go s.start(ctx)
-	return s, nil
-}
-
-func DeleteSystem(ctx context.Context, c string) error {
-
-	system, ok := systems[c]
-	if !ok {
-		return fmt.Errorf("could not find system for %s", c)
-	}
-
-	system.stop()
-	delete(systems, c)
-
-	return nil
-
-}
-
 func NewSystem(ctx context.Context, c string) (*System, error) {
-
-	ctx, cancel := context.WithCancel(ctx)
 
 	cfg, err := config.LoadConfig(c)
 	if err != nil {
@@ -65,21 +32,15 @@ func NewSystem(ctx context.Context, c string) (*System, error) {
 	}
 
 	s := &System{
-		cfg:    cfg,
-		cancel: cancel,
-		ctx:    ctx,
-		file:   c,
+		cfg:  cfg,
+		file: c,
 	}
-
+	s.init(ctx)
 	return s, nil
 
 }
 
-func (s *System) stop() {
-	s.cancel()
-}
-
-func (s *System) start(ctx context.Context) {
+func (s *System) init(ctx context.Context) {
 
 	// Starlify client
 	starlifyClient := starlify.Client{
@@ -122,34 +83,20 @@ func (s *System) start(ctx context.Context) {
 		os.Exit(3)
 	}
 
-	doSync := time.After(time.Second * 5)
-	doPing := time.After(time.Second * 1)
+	s.ks = kafkaTopicsToStarlify
 
-loop:
-	for {
-		select {
+}
 
-		case <-doPing:
+func (s *System) SyncTopics(ctx context.Context) error {
 
-			log.Println("Pinging Starlify")
-			kafkaTopicsToStarlify.Ping(ctx)
-			doPing = time.After(time.Second * 5)
-
-		case <-doSync:
-
-			log.Println("Performing Starlify-->Kafka topic sync")
-			err := kafkaTopicsToStarlify.SyncTopics(ctx)
-			if err != nil {
-				log.Printf("Failed to sync topic. Retrying in 5m. %v", err)
-				kafkaTopicsToStarlify.ReportError(ctx, err)
-			}
-			doSync = time.After(time.Second * 20)
-
-		case <-ctx.Done():
-			break loop
-		}
+	err := s.ks.SyncTopics(ctx)
+	if err != nil {
+		s.ks.ReportError(ctx, err)
 	}
+	return err
+}
 
-	log.Println("Quitting. Bye.")
+func (s *System) PingStarlify(ctx context.Context) error {
+	return s.ks.Ping(ctx)
 
 }

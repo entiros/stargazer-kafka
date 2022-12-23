@@ -65,11 +65,12 @@ func (k *KafkaTopicsToStarlify) ReportError(ctx context.Context, message error) 
 	}
 }
 
-func (k *KafkaTopicsToStarlify) Ping(ctx context.Context) {
+func (k *KafkaTopicsToStarlify) Ping(ctx context.Context) error {
 	err := k.starlify.Ping(ctx)
 	if err != nil {
 		log.Printf("Starlify Ping failed: %s", err.Error())
 	}
+	return err
 }
 
 // We are not supposed to understand this.
