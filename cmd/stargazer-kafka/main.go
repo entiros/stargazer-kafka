@@ -16,7 +16,7 @@ func main() {
 
 	fmt.Println("Starting Stargazer")
 	if len(os.Args) < 2 {
-		log.Fatal("Start with config file name of config directory")
+		log.Fatal("Start with config file name or directory with config files")
 	}
 
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -28,12 +28,28 @@ func main() {
 
 loop:
 	for {
-		systems := getSystems(info, ctx)
+		next, hasNext := getSystems(info, ctx)
 
-		for _, system := range systems {
-			system.PingStarlify(ctx)
-			system.SyncTopics(ctx)
+		for hasNext() {
+			system, err := next()
+			if err != nil {
+				log.Printf("Failed to sync. %v", err)
+				continue
+			}
+
+			err = system.PingStarlify(ctx)
+			if err != nil {
+				log.Printf("failed to ping starlify. %v", err)
+			}
+			err = system.SyncTopics(ctx)
+			if err != nil {
+				log.Printf("failed to sync topics for %s, %v ", system.Name(), err)
+			}
+
+			time.Sleep(3 * time.Second)
+
 		}
+
 		select {
 		case <-ctx.Done():
 			break loop
@@ -43,27 +59,54 @@ loop:
 
 }
 
-func getSystems(info os.FileInfo, ctx context.Context) []*system.System {
-
-	var systems []*system.System
-	var err error
+func getSystems(info os.FileInfo, ctx context.Context) (next func() (*system.System, error), hasNext func() bool) {
 
 	if info.IsDir() {
-		systems, err = GetSystems(ctx, info.Name())
-		if err != nil {
-			log.Fatal(err)
-		}
+		return GetSystems(ctx, info.Name())
+
 	} else {
-		sys, e := system.NewSystem(ctx, info.Name())
-		if e != nil {
-			log.Fatal(e)
-		}
-		systems = append(systems, sys)
+		return GetSystem(ctx, info.Name())
 	}
-	return systems
 }
 
-func GetSystems(ctx context.Context, dir string) ([]*system.System, error) {
+func GetSystem(ctx context.Context, dir string) (next func() (*system.System, error), hasNext func() bool) {
+
+	var i int
+	return func() (*system.System, error) {
+			s, err := system.NewSystem(ctx, dir)
+			i++
+			return s, err
+		}, func() bool {
+			return i < 1
+		}
+
+}
+
+func GetSystems(ctx context.Context, dir string) (next func() (*system.System, error), hasNext func() bool) {
+
+	configFiles, err := config.GetConfigs(dir)
+	if err != nil {
+		return nil, func() bool {
+			return false
+		}
+	}
+
+	var i int
+
+	next = func() (*system.System, error) {
+		sys, err := system.NewSystem(ctx, configFiles[i])
+		i++
+		return sys, err
+	}
+
+	hasNext = func() bool {
+		return i < len(configFiles)
+	}
+
+	return
+}
+
+func GetSystemsZ(ctx context.Context, dir string) ([]*system.System, error) {
 
 	configFiles, err := config.GetConfigs(dir)
 	if err != nil {

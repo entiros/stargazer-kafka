@@ -2,12 +2,11 @@ package system
 
 import (
 	"context"
+	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/config"
 	"github.com/entiros/stargazer-kafka/internal/kafka"
 	stargazerkafka "github.com/entiros/stargazer-kafka/internal/stargazer-kafka"
 	"github.com/entiros/stargazer-kafka/internal/starlify"
-	"log"
-	"os"
 )
 
 type System struct {
@@ -16,6 +15,10 @@ type System struct {
 	ctx    context.Context
 	file   string
 	ks     *stargazerkafka.KafkaTopicsToStarlify
+}
+
+func (s *System) Name() string {
+	return s.file
 }
 
 var systems map[string]*System
@@ -35,12 +38,15 @@ func NewSystem(ctx context.Context, c string) (*System, error) {
 		cfg:  cfg,
 		file: c,
 	}
-	s.init(ctx)
+	err = s.init(ctx)
+	if err != nil {
+		return nil, err
+	}
 	return s, nil
 
 }
 
-func (s *System) init(ctx context.Context) {
+func (s *System) init(ctx context.Context) error {
 
 	// Starlify client
 	starlifyClient := starlify.Client{
@@ -79,24 +85,18 @@ func (s *System) init(ctx context.Context) {
 	// Create integration
 	kafkaTopicsToStarlify, err := stargazerkafka.InitKafkaTopicsToStarlify(ctx, kafkaClient, &starlifyClient)
 	if err != nil {
-		log.Println(err)
-		os.Exit(3)
+		return fmt.Errorf("failed to initialize system %s. %v", s.file, err)
 	}
 
 	s.ks = kafkaTopicsToStarlify
 
+	return nil
 }
 
 func (s *System) SyncTopics(ctx context.Context) error {
-
-	err := s.ks.SyncTopics(ctx)
-	if err != nil {
-		s.ks.ReportError(ctx, err)
-	}
-	return err
+	return s.ks.SyncTopics(ctx)
 }
 
 func (s *System) PingStarlify(ctx context.Context) error {
 	return s.ks.Ping(ctx)
-
 }

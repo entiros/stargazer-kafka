@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"log"
@@ -67,7 +68,7 @@ func LoadConfig(configFile string) (*Config, error) {
 	var config Config
 	err = viper.Unmarshal(&config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load config for %s. %v", configFile, err)
 	}
 
 	return &config, nil
