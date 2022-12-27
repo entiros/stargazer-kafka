@@ -26,7 +26,7 @@ func createStarlifyClient() *Client {
 }
 
 func TestGetTopics(t *testing.T) {
-	config, err := stargazerkafka.LoadConfig()
+	config, err := stargazerkafka.LoadConfig("config/config.yml")
 	if err != nil {
 		log.Println(err)
 		os.Exit(2)
@@ -38,7 +38,7 @@ func TestGetTopics(t *testing.T) {
 		MiddlewareId: config.Starlify.MiddlewareId,
 	}
 
-	topics, err := c.GetTopics(context.Background())
+	_, topics, err := c.GetTopics(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
