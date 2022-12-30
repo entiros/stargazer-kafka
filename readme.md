@@ -1,6 +1,12 @@
 # Kafka Stargazer agent
 
-The Kafka Stargazer Agent is used to create services in Starlify matching the topics in your Kafka cluster.
+The Kafka Stargazer Agent syncs Kafka topics with Starlify Middleware Endpoints.
+
+Overview diagram:
+  https://lucid.app/lucidchart/c01a8096-c508-4da0-b813-e28e9cb1c539/edit?viewport_loc=-211%2C-517%2C3289%2C1944%2C0_0&invitationId=inv_d34d075e-8ffd-4b0c-a5be-b8b5e42f9ac9
+Sequence diagram:
+ https://lucid.app/lucidchart/bda8d43a-e2ac-4d45-affe-9f46efc7ae5b/edit?viewport_loc=-532%2C-772%2C4385%2C2592%2C0_0&invitationId=inv_5b962316-4408-4c36-b945-947d2177c4f5
+
 
 # Setup
 
