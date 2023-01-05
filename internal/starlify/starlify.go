@@ -19,6 +19,12 @@ type Client struct {
 	resty        *resty.Client
 }
 
+type TopicEndpoint struct {
+	Name   string
+	ID     string
+	Prefix string
+}
+
 func (starlify *Client) GetRestyClient() *resty.Client {
 	if starlify.resty == nil {
 		starlify.resty = resty.New()
@@ -41,7 +47,6 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 	}
 
 	if response.StatusCode() == http.StatusOK {
-		// Parse response
 		err = json.Unmarshal(response.Body(), &returnType)
 		if err != nil {
 			return err
@@ -57,18 +62,30 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 
 // post performs POST request to path and return parsed response
 func (starlify *Client) post(ctx context.Context, path string, body any, returnType any) error {
-	// POST request
-	response, err := starlify.GetRestyClient().R().
+
+	resp, err := starlify.GetRestyClient().R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).
+		SetResult(returnType).
 		Post(starlify.BaseUrl + path)
+
 	if err != nil {
 		return err
 	}
+	if resp.IsError() {
+		return fmt.Errorf("%s", resp.Status())
+	}
+	return nil
+}
 
-	// Parse response
-	err = json.Unmarshal(response.Body(), &returnType)
+// post performs POST request to path and return parsed response
+func (starlify *Client) delete(ctx context.Context, path string) error {
+
+	_, err := starlify.GetRestyClient().R().
+		SetContext(ctx).
+		SetHeader("X-API-KEY", starlify.ApiKey).
+		Delete(starlify.BaseUrl + path)
 	if err != nil {
 		return err
 	}
@@ -78,7 +95,7 @@ func (starlify *Client) post(ctx context.Context, path string, body any, returnT
 
 // patch performs PATCH request to path and return parsed response
 func (starlify *Client) patch(ctx context.Context, path string, body any, returnType any) error {
-	// POST request
+
 	response, err := starlify.GetRestyClient().R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
@@ -86,6 +103,10 @@ func (starlify *Client) patch(ctx context.Context, path string, body any, return
 		Patch(starlify.BaseUrl + path)
 	if err != nil {
 		return err
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("%s", response.Status())
 	}
 
 	// Parse response
@@ -97,25 +118,50 @@ func (starlify *Client) patch(ctx context.Context, path string, body any, return
 	return err
 }
 
-func (starlify *Client) GetTopics(ctx context.Context) (string, []string, error) {
+func (starlify *Client) GetTopics(ctx context.Context) ([]TopicEndpoint, error) {
 
 	var middleware Middleware
 	path := fmt.Sprintf("/middlewares/%s", starlify.MiddlewareId)
 
 	err := starlify.get(ctx, path, &middleware)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	var topics []string
+	var topics []TopicEndpoint
 	for _, endpoint := range middleware.Endpoints {
 		e := strings.TrimSpace(endpoint.Name)
 		if strings.HasPrefix(e, strings.TrimSpace(middleware.KafkaPrefix)) {
-			topics = append(topics, e)
+
+			topics = append(topics, TopicEndpoint{
+				Name:   e,
+				ID:     endpoint.Id,
+				Prefix: middleware.KafkaPrefix,
+			})
 		}
 	}
+	return topics, nil
+}
 
-	return middleware.KafkaPrefix, topics, nil
+func (starlify *Client) CreateTopic(ctx context.Context, topic string) error {
+
+	endpoint := EndpointRequest{
+		Name: topic,
+	}
+	path := fmt.Sprintf("/middlewares/%s/endpoints", starlify.MiddlewareId)
+
+	var response EndpointResponse
+	err := starlify.post(ctx, path, &endpoint, &response)
+	return err
+
+}
+
+func (starlify *Client) DeleteTopic(ctx context.Context, endpoint TopicEndpoint) error {
+
+	path := fmt.Sprintf("/endpoints/%s", endpoint.ID)
+
+	return starlify.delete(ctx, path)
+
 }
 
 // GetServices will get all services for system

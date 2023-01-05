@@ -57,17 +57,17 @@ func (s *System) init(ctx context.Context) error {
 	}
 
 	var kafkaClient *kafka.Client
-	if s.cfg.Kafka.Auth.IAM.Secret != "" {
+	if s.cfg.Kafka.Auth.IAM.Secret != "" && s.cfg.Kafka.Auth.IAM.Key != "" {
 		kafkaClient = kafka.NewKafkaClient(
 			kafka.WithBootstrapServers(s.cfg.Kafka.BootstrapServers...),
 			kafka.WithSession(kafka.Session),
 			kafka.WithIAM(s.cfg.Kafka.Auth.IAM.Key, s.cfg.Kafka.Auth.IAM.Secret),
 		)
-	} else if s.cfg.Kafka.Auth.Plain.User != "" {
+	} else if s.cfg.Kafka.Auth.Plain.Username != "" && s.cfg.Kafka.Auth.Plain.Password != "" {
 		kafkaClient = kafka.NewKafkaClient(
 			kafka.WithBootstrapServers(s.cfg.Kafka.BootstrapServers...),
 			kafka.WithSession(kafka.Session),
-			kafka.WithPassword(s.cfg.Kafka.Auth.Plain.User, s.cfg.Kafka.Auth.Plain.Password),
+			kafka.WithPassword(s.cfg.Kafka.Auth.Plain.Username, s.cfg.Kafka.Auth.Plain.Password),
 		)
 	} else if s.cfg.Kafka.Auth.OAuth.Token != "" {
 		kafkaClient = kafka.NewKafkaClient(
@@ -93,8 +93,18 @@ func (s *System) init(ctx context.Context) error {
 	return nil
 }
 
+var ToKafka = "starlify_to_kafka"
+var ToStarlify = "kafka_to_starlify"
+
 func (s *System) SyncTopics(ctx context.Context) error {
-	return s.ks.SyncTopics(ctx)
+
+	if s.cfg.Sync.Direction == "starlify_to_kafka" {
+		return s.ks.SyncTopicsToKafka(ctx)
+	} else if s.cfg.Sync.Direction == "kafka_to_starlify" {
+		return s.ks.SyncTopicsToStarlify(ctx)
+	}
+
+	return fmt.Errorf("Skipping sync of '%s'. %s is an invalid sync direction. Valid values are %s or %s", s.file, s.cfg.Sync.Direction, ToKafka, ToStarlify)
 }
 
 func (s *System) PingStarlify(ctx context.Context) error {

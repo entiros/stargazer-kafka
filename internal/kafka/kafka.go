@@ -3,6 +3,8 @@ package kafka
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	"github.com/entiros/stargazer-kafka/agentsync/log"
 	"github.com/twmb/franz-go/pkg/sasl"
 	"github.com/twmb/franz-go/pkg/sasl/oauth"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
@@ -57,7 +59,10 @@ func WithSession(foo func() *session.Session) func(client *Client) {
 }
 
 func Session() *session.Session {
-	s, _ := session.NewSession()
+	s, err := session.NewSession()
+	if err != nil {
+		log.Logger.Errorf("Failed to create session: %v", err)
+	}
 	return s
 }
 
@@ -83,7 +88,11 @@ func WithIAM(accessKey string, secret string) func(client *Client) {
 	return func(client *Client) {
 
 		client.AuthMethod = faws.ManagedStreamingIAM(func(ctx context.Context) (faws.Auth, error) {
-			val, err := client.AWSSession().Config.Credentials.GetWithContext(ctx)
+			sess := client.AWSSession()
+			if sess == nil {
+				return faws.Auth{}, fmt.Errorf("failed to create AWS session")
+			}
+			val, err := sess.Config.Credentials.GetWithContext(ctx)
 			if err != nil {
 				return faws.Auth{}, err
 			}

@@ -12,12 +12,17 @@ import (
 
 // Config is the configuration file struct
 type Config struct {
+	Sync struct {
+		Direction string `json:"direction"`
+	} `yaml:"sync"`
+
 	Starlify struct {
 		BaseUrl      string `yaml:"baseUrl"`
 		ApiKey       string `yaml:"apiKey"`
 		AgentId      string `yaml:"agentId"`
 		MiddlewareId string `yaml:"middlewareId"`
 	} `yaml:"starlify"`
+
 	Kafka struct {
 		BootstrapServers []string `yaml:"bootstrapServers"`
 		Auth             struct {
@@ -29,7 +34,7 @@ type Config struct {
 				Secret string `yaml:"secret"`
 			}
 			Plain struct {
-				User     string `yaml:"user"`
+				Username string `yaml:"username"`
 				Password string `yaml:"password"`
 			}
 		} `yaml:"auth"`
@@ -38,6 +43,9 @@ type Config struct {
 
 // LoadConfig will load properties from YAML configuration file or environment variables
 func LoadConfig(configFile string) (*Config, error) {
+
+	viper.SetDefault("sync.direction", "starlify_to_kafka")
+
 	// Default Starlify properties
 	viper.SetDefault("starlify.baseUrl", "https://api.starlify.com/hypermedia")
 	viper.SetDefault("starlify.apiKey", "")
@@ -46,11 +54,11 @@ func LoadConfig(configFile string) (*Config, error) {
 
 	// Default Kafka properties
 	viper.SetDefault("kafka.bootstrapServers", []string{"127.0.0.1:9092"})
-	viper.SetDefault("kafka.oauth.token", "")
-	viper.SetDefault("kafka.plain.user", "")
-	viper.SetDefault("kafka.plain.password", "")
-	viper.SetDefault("kafka.iam.secret", "")
-	viper.SetDefault("kafka.iam.key", "")
+	viper.SetDefault("kafka.auth.oauth.token", "")
+	viper.SetDefault("kafka.auth.plain.username", "")
+	viper.SetDefault("kafka.auth.plain.password", "")
+	viper.SetDefault("kafka.auth.iam.secret", "")
+	viper.SetDefault("kafka.auth.iam.key", "")
 
 	// Override properties with upper case environment variable of property name with . replaced with _
 	viper.AutomaticEnv()

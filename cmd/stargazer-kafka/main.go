@@ -68,22 +68,22 @@ loop:
 		next, hasNext := getSystems(info, ctx)
 
 		for hasNext() {
-			system, err := next()
+			sys, err := next()
 			if err != nil {
 				metrics.ErrCount.Add(1)
 				log.Logger.Errorf("Failed to sync. %v", err)
 				continue
 			}
 
-			err = system.PingStarlify(ctx)
+			err = sys.PingStarlify(ctx)
 			if err != nil {
 				metrics.ErrCount.Add(1)
 				log.Logger.Errorf("failed to ping starlify. %v", err)
 			}
-			err = system.SyncTopics(ctx)
+			err = sys.SyncTopics(ctx)
 			if err != nil {
 				metrics.ErrCount.Add(1)
-				log.Logger.Errorf("failed to sync topics for %s, %v ", system.Name(), err)
+				log.Logger.Errorf("failed to sync topics for %s, %v ", sys.Name(), err)
 			}
 
 			metrics.SyncCount.Add(1)
@@ -251,11 +251,11 @@ func rateLimiter(limiter *rate.Limiter) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		deadline, cancel := context.WithDeadline(c.Request.Context(), time.Now().Add(time.Second*5))
+		defer cancel()
 
 		err := limiter.Wait(deadline)
 		if err != nil {
 			c.AbortWithStatus(http.StatusTooManyRequests)
-			cancel()
 		}
 	}
 

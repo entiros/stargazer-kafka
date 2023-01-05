@@ -19,12 +19,14 @@ type KafkaTopicsToStarlify struct {
 	lastUpdateReportedError bool
 }
 
+const KafkaType = "managed-kafka"
+
 func InitKafkaTopicsToStarlify(ctx context.Context, kafkaClient *kafka.Client, starlify *starlify.Client) (*KafkaTopicsToStarlify, error) {
 	// Get agent from Starlify and verify type
 	agent, err := starlify.GetAgent(ctx)
 	if err != nil {
 		return nil, err
-	} else if agent.AgentType != "managed-kafka" {
+	} else if agent.AgentType != KafkaType {
 		return nil, fmt.Errorf("starlify agent '%s' is of type '%s', expected 'kafka'", agent.Id, agent.AgentType)
 	}
 
@@ -36,6 +38,7 @@ func InitKafkaTopicsToStarlify(ctx context.Context, kafkaClient *kafka.Client, s
 	   		return nil, err
 	   	}
 	*/
+
 	// Get topics from Kafka to verify connection
 	err = kafkaClient.Ping(ctx)
 	if err != nil {
@@ -73,85 +76,26 @@ func (k *KafkaTopicsToStarlify) Ping(ctx context.Context) error {
 	return err
 }
 
-// We are not supposed to understand this.
-// Read here:
-//  http://www.mlsite.net/blog/?p=2250
-//  http://www.mlsite.net/blog/?p=2271
-
-type tuple struct {
-	position int
-	value    string
-}
-
-// Produce two lists required to make source equal to target.
-// - inserts, what need to be inserted into source
-// - deletes, what need to be deleted from source
-func ListDiff(source []string, target []string) ([]string, []string) {
-
-	sort.Strings(source)
-	sort.Strings(target)
-
-	ins, del := SyncActions(source, target)
-
-	var inserts []string
-	for _, r := range ins {
-		inserts = append(inserts, r.value)
-	}
-
-	var deletes []string
-	for _, d := range del {
-		deletes = append(deletes, source[d])
-	}
-
-	return inserts, deletes
-}
-
-func SyncActions(a []string, target []string) ([]tuple, []int) {
-
-	var inserts []tuple
-	var deletes []int
-	x := 0
-	y := 0
-
-	for (x < len(a)) || (y < len(target)) {
-		if y >= len(target) {
-			deletes = append(deletes, x)
-			x += 1
-		} else if x >= len(a) {
-			inserts = append(inserts, tuple{y, target[y]})
-			y += 1
-		} else if a[x] < target[y] {
-			deletes = append(deletes, x)
-			x += 1
-		} else if a[x] > target[y] {
-			inserts = append(inserts, tuple{y, target[y]})
-			y += 1
-		} else {
-			x += 1
-			y += 1
-		}
-	}
-	return inserts, deletes
-}
-
-func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) (string, []string, error) {
+func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) ([]starlify.TopicEndpoint, error) {
 
 	log.Printf("Getting Starlify topics")
-	prefix, topics, err := k.starlify.GetTopics(ctx)
-	if err != nil {
-		return "", nil, err
-	}
+	return k.starlify.GetTopics(ctx)
 
-	log.Printf("%d topics receives from Starlify: %v", len(topics), topics)
-	return prefix, topics, nil
 }
 
-// createTopics will get topics from Kafka and create matching services in Starlify.
-func (k *KafkaTopicsToStarlify) SyncTopics(ctx context.Context) error {
+// get topics(endpoints on a middleware) from Starlify and create matching topics in Kafka.
+func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
 
-	prefix, starlifyTopics, err := k.getStarlifyTopics(ctx)
+	topics, err := k.getStarlifyTopics(ctx)
 	if err != nil {
 		return err
+	}
+
+	var starlifyTopics []string
+	var prefix string
+	for _, topic := range topics {
+		prefix = topic.Prefix
+		starlifyTopics = append(starlifyTopics, topic.Name)
 	}
 
 	kafkaTopics, err := k.getKafkaTopics(ctx, prefix)
@@ -173,26 +117,49 @@ func (k *KafkaTopicsToStarlify) SyncTopics(ctx context.Context) error {
 		return err
 	}
 
-	/*
-		// Update details
-		err = k.starlify.UpdateDetails(starlify.Details{Topics: createTopicDetails(topics)})
+	return nil
+}
+
+// get topics from Kafka and create matching topics in Starlify.
+func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error {
+
+	topics, err := k.getStarlifyTopics(ctx)
+	if err != nil {
+		return err
+	}
+
+	var starlifyTopics []string
+	topicEndpoints := make(map[string]starlify.TopicEndpoint)
+
+	var prefix string
+	for _, topic := range topics {
+		prefix = topic.Prefix
+		starlifyTopics = append(starlifyTopics, topic.Name)
+		topicEndpoints[topic.Name] = topic
+	}
+
+	kafkaTopics, err := k.getKafkaTopics(ctx, prefix)
+	if err != nil {
+		return err
+	}
+
+	createMe, deleteMe := ListDiff(starlifyTopics, kafkaTopics)
+
+	log.Printf("Creating topics: %v", createMe)
+	for _, topic := range createMe {
+		err = k.starlify.CreateTopic(ctx, topic)
 		if err != nil {
-			e := fmt.Errorf("Failed to update details with error: %v", err.Error())
+			return err
 		}
-	*/
+	}
 
-	/*
-		// Clear any errors reported
-		if k.lastUpdateReportedError {
-			err = k.starlify.ClearError()
-			if err != nil {
-				log.Printf("Failed to clear error")
-			} else {
-				k.lastUpdateReportedError = false
-			}
+	log.Printf("Deleting topics: %v", deleteMe)
+	for _, topic := range deleteMe {
+		err = k.starlify.DeleteTopic(ctx, topicEndpoints[topic])
+		if err != nil {
+			return err
 		}
-	*/
-
+	}
 	return nil
 }
 

@@ -2,6 +2,57 @@ package starlify
 
 import "time"
 
+type EndpointResponse struct {
+	Type           string    `json:"type"`
+	Id             string    `json:"id"`
+	Created        time.Time `json:"created"`
+	Updated        time.Time `json:"updated"`
+	GoLiveDateTime time.Time `json:"goLiveDateTime"`
+	Name           string    `json:"name"`
+	CreatedByAgent bool      `json:"createdByAgent"`
+	Provider       struct {
+		Type    string    `json:"type"`
+		Id      string    `json:"id"`
+		Created time.Time `json:"created"`
+		Updated time.Time `json:"updated"`
+		Name    string    `json:"name"`
+		Links   []struct {
+			Rel  string `json:"rel"`
+			Href string `json:"href"`
+		} `json:"links"`
+	} `json:"provider"`
+	Attributes           []interface{} `json:"attributes"`
+	Engagements          []interface{} `json:"engagements"`
+	EndpointInteractions []interface{} `json:"endpointInteractions"`
+	Domain               struct {
+		Type  string `json:"type"`
+		Id    string `json:"id"`
+		Links []struct {
+			Rel  string `json:"rel"`
+			Href string `json:"href"`
+		} `json:"links"`
+	} `json:"domain"`
+	Network struct {
+		Type    string    `json:"type"`
+		Id      string    `json:"id"`
+		Created time.Time `json:"created"`
+		Updated time.Time `json:"updated"`
+		Name    string    `json:"name"`
+		Links   []struct {
+			Rel  string `json:"rel"`
+			Href string `json:"href"`
+		} `json:"links"`
+	} `json:"network"`
+	Links []struct {
+		Rel  string `json:"rel"`
+		Href string `json:"href"`
+	} `json:"links"`
+}
+
+type EndpointRequest struct {
+	Name string `json:"name"`
+}
+
 type Middleware struct {
 	Type           string    `json:"type"`
 	Id             string    `json:"id"`

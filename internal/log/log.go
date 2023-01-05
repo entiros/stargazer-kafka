@@ -24,6 +24,7 @@ func (l MyLogger) Log(level kgo.LogLevel, msg string, keyvals ...interface{}) {
 	l.Debugf(msg, keyvals)
 }
 
+// runs when package is loaded to init log package
 func init() {
 
 	debugLevel = zap.NewAtomicLevel()
