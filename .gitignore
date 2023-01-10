@@ -3,4 +3,3 @@ configs/config.yml
 /configs/config-dev.yml
 /configs/config-prod.yml
 /configs/config-test.yml
-/agentsync/
