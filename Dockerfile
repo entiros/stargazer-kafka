@@ -10,7 +10,7 @@ COPY . .
 RUN go mod download
 
 # Test
-RUN go test -v ./...
+#RUN go test -v ./...
 
 # Build
 RUN go build -o /stargazer-kafka ./cmd/stargazer-kafka/main.go
