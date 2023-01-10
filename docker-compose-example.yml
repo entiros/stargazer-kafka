@@ -3,6 +3,7 @@ version: "3"
 services:
   zookeeper:
     image: bitnami/zookeeper:latest
+    container_name: zookeper
     restart: unless-stopped
     ports:
       - '2181:2181'
@@ -13,6 +14,7 @@ services:
     depends_on:
       - zookeeper
     image: bitnami/kafka:latest
+    container_name: kafka
     restart: unless-stopped
     ports:
       - '9092:9092'

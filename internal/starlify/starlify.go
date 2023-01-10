@@ -1,19 +1,28 @@
 package starlify
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"log"
+	"net/http"
+	"strings"
 )
 
 // Client Starlify system client configuration
 type Client struct {
-	BaseUrl  string
-	ApiKey   string
-	AgentId  string
-	SystemId string
-	resty    *resty.Client
+	BaseUrl      string
+	ApiKey       string
+	AgentId      string
+	MiddlewareId string
+	resty        *resty.Client
+}
+
+type TopicEndpoint struct {
+	Name   string
+	ID     string
+	Prefix string
 }
 
 func (starlify *Client) GetRestyClient() *resty.Client {
@@ -25,37 +34,58 @@ func (starlify *Client) GetRestyClient() *resty.Client {
 }
 
 // get performs GET request to path and return parsed response
-func (starlify *Client) get(path string, returnType any) error {
+func (starlify *Client) get(ctx context.Context, path string, returnType any) error {
 	// GET request
+	requestPath := starlify.BaseUrl + path
+	log.Printf("Performing get to : %s", requestPath)
 	response, err := starlify.GetRestyClient().R().
+		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
-		Get(starlify.BaseUrl + path)
+		Get(requestPath)
 	if err != nil {
 		return err
 	}
 
-	// Parse response
-	err = json.Unmarshal(response.Body(), &returnType)
-	if err != nil {
-		return err
+	if response.StatusCode() == http.StatusOK {
+		err = json.Unmarshal(response.Body(), &returnType)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		return fmt.Errorf("error while performing request to %s, error: %v", response.Request.URL, response.Error())
 	}
 
-	return err
+	return nil
+
 }
 
 // post performs POST request to path and return parsed response
-func (starlify *Client) post(path string, body any, returnType any) error {
-	// POST request
-	response, err := starlify.GetRestyClient().R().
+func (starlify *Client) post(ctx context.Context, path string, body any, returnType any) error {
+
+	resp, err := starlify.GetRestyClient().R().
+		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).
+		SetResult(returnType).
 		Post(starlify.BaseUrl + path)
+
 	if err != nil {
 		return err
 	}
+	if resp.IsError() {
+		return fmt.Errorf("%s", resp.Status())
+	}
+	return nil
+}
 
-	// Parse response
-	err = json.Unmarshal(response.Body(), &returnType)
+// post performs POST request to path and return parsed response
+func (starlify *Client) delete(ctx context.Context, path string) error {
+
+	_, err := starlify.GetRestyClient().R().
+		SetContext(ctx).
+		SetHeader("X-API-KEY", starlify.ApiKey).
+		Delete(starlify.BaseUrl + path)
 	if err != nil {
 		return err
 	}
@@ -64,14 +94,19 @@ func (starlify *Client) post(path string, body any, returnType any) error {
 }
 
 // patch performs PATCH request to path and return parsed response
-func (starlify *Client) patch(path string, body any, returnType any) error {
-	// POST request
+func (starlify *Client) patch(ctx context.Context, path string, body any, returnType any) error {
+
 	response, err := starlify.GetRestyClient().R().
+		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).
 		Patch(starlify.BaseUrl + path)
 	if err != nil {
 		return err
+	}
+
+	if response.IsError() {
+		return fmt.Errorf("%s", response.Status())
 	}
 
 	// Parse response
@@ -83,9 +118,55 @@ func (starlify *Client) patch(path string, body any, returnType any) error {
 	return err
 }
 
+func (starlify *Client) GetTopics(ctx context.Context) ([]TopicEndpoint, error) {
+
+	var middleware Middleware
+	path := fmt.Sprintf("/middlewares/%s", starlify.MiddlewareId)
+
+	err := starlify.get(ctx, path, &middleware)
+	if err != nil {
+		return nil, err
+	}
+
+	var topics []TopicEndpoint
+	for _, endpoint := range middleware.Endpoints {
+		e := strings.TrimSpace(endpoint.Name)
+		if strings.HasPrefix(e, strings.TrimSpace(middleware.KafkaPrefix)) {
+
+			topics = append(topics, TopicEndpoint{
+				Name:   e,
+				ID:     endpoint.Id,
+				Prefix: middleware.KafkaPrefix,
+			})
+		}
+	}
+	return topics, nil
+}
+
+func (starlify *Client) CreateTopic(ctx context.Context, topic string) error {
+
+	endpoint := EndpointRequest{
+		Name: topic,
+	}
+	path := fmt.Sprintf("/middlewares/%s/endpoints", starlify.MiddlewareId)
+
+	var response EndpointResponse
+	err := starlify.post(ctx, path, &endpoint, &response)
+	return err
+
+}
+
+func (starlify *Client) DeleteTopic(ctx context.Context, endpoint TopicEndpoint) error {
+
+	path := fmt.Sprintf("/endpoints/%s", endpoint.ID)
+
+	return starlify.delete(ctx, path)
+
+}
+
 // GetServices will get all services for system
-func (starlify *Client) GetServices() ([]Service, error) {
-	log.Printf("Get services for system %s", starlify.SystemId)
+func (starlify *Client) GetServices(ctx context.Context) ([]Service, error) {
+	log.Printf("Get services for system %s", starlify.MiddlewareId)
 
 	var services []Service = nil
 
@@ -97,8 +178,8 @@ func (starlify *Client) GetServices() ([]Service, error) {
 
 		// Get services page
 		var servicesPage ServicesPage
-		path := fmt.Sprintf("/systems/%s/services?page=%d", starlify.SystemId, page)
-		err := starlify.get(path, &servicesPage)
+		path := fmt.Sprintf("/systems/%s/services?page=%d", starlify.MiddlewareId, page)
+		err := starlify.get(ctx, path, &servicesPage)
 		if err != nil {
 			return nil, err
 		}
@@ -124,23 +205,23 @@ func (starlify *Client) GetServices() ([]Service, error) {
 }
 
 // CreateService will create and return new service
-func (starlify *Client) CreateService(name string) (*Service, error) {
-	log.Printf("Create service '%s' in system %s", name, starlify.SystemId)
+func (starlify *Client) CreateService(ctx context.Context, name string) (*Service, error) {
+	log.Printf("Create service '%s' in system %s", name, starlify.MiddlewareId)
 
 	var service Service
-	err := starlify.post("/systems/"+starlify.SystemId+"/services", &ServiceRequest{Name: name}, &service)
+	err := starlify.post(ctx, "/systems/"+starlify.MiddlewareId+"/services", &ServiceRequest{Name: name}, &service)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("Service '%s' (%s) created in system %s", service.Name, service.Id, starlify.SystemId)
+	log.Printf("Service '%s' (%s) created in system %s", service.Name, service.Id, starlify.MiddlewareId)
 	return &service, nil
 }
 
 // Ping will perform an agent update without data - nothing will be updated except 'lastSeen'
-func (starlify *Client) Ping() error {
+func (starlify *Client) Ping(ctx context.Context) error {
 	var agent Agent
-	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{}, &agent)
+	err := starlify.patch(ctx, "/agents/"+starlify.AgentId, AgentRequest{}, &agent)
 	if err != nil {
 		return err
 	}
@@ -150,11 +231,11 @@ func (starlify *Client) Ping() error {
 }
 
 // GetAgent will return the Starlify agent
-func (starlify *Client) GetAgent() (*Agent, error) {
+func (starlify *Client) GetAgent(ctx context.Context) (*Agent, error) {
 	log.Printf("Get agent %s", starlify.AgentId)
 
 	var agent Agent
-	err := starlify.get("/agents/"+starlify.AgentId, &agent)
+	err := starlify.get(ctx, "/agents/"+starlify.AgentId, &agent)
 	if err != nil {
 		return nil, err
 	}
@@ -163,10 +244,10 @@ func (starlify *Client) GetAgent() (*Agent, error) {
 }
 
 // UpdateDetails will update the agent details
-func (starlify *Client) UpdateDetails(details Details) error {
+func (starlify *Client) UpdateDetails(ctx context.Context, details Details) error {
 	log.Println("Updating details")
 	var agent Agent
-	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Details: &details}, &agent)
+	err := starlify.patch(ctx, "/agents/"+starlify.AgentId, AgentRequest{Details: &details}, &agent)
 	if err != nil {
 		return err
 	}
@@ -174,9 +255,9 @@ func (starlify *Client) UpdateDetails(details Details) error {
 }
 
 // ReportError will update the error field in the Starlify agent
-func (starlify *Client) ReportError(message string) error {
+func (starlify *Client) ReportError(ctx context.Context, message string) error {
 	var agent Agent
-	err := starlify.patch("/agents/"+starlify.AgentId, AgentRequest{Error: message}, &agent)
+	err := starlify.patch(ctx, "/agents/"+starlify.AgentId, AgentRequest{Error: message}, &agent)
 	if err != nil {
 		return err
 	}
@@ -184,6 +265,6 @@ func (starlify *Client) ReportError(message string) error {
 }
 
 // ClearError will Starlify agent error field to empty string
-func (starlify *Client) ClearError() error {
-	return starlify.ReportError("")
+func (starlify *Client) ClearError(ctx context.Context) error {
+	return starlify.ReportError(ctx, "")
 }

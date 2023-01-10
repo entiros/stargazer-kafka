@@ -1,0 +1,21 @@
+
+# Starlify configuration
+starlify:
+  apiKey: ""
+  middlewareId: ""
+  agentId: ""
+  baseUrl: ""
+
+kafka:
+  bootstrapServers:
+    - ""
+    - ""
+  auth:
+    iam:
+      key: ""
+      secret: ""
+    oauth:
+      token: ""
+    plain:
+      user: ""
+      password: ""

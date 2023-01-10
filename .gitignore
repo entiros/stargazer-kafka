@@ -1,2 +1,5 @@
-cmd/config.yml
+configs/config.yml
 .idea
+/configs/config-dev.yml
+/configs/config-prod.yml
+/configs/config-test.yml

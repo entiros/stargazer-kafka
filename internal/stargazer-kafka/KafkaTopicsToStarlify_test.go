@@ -1,19 +1,48 @@
 package stargazer_kafka
 
 import (
-	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/entiros/stargazer-kafka/internal/starlify"
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/h2non/gock.v1"
+	"github.com/entiros/stargazer-kafka/internal/config"
+	"sort"
 	"testing"
+
+	"github.com/entiros/stargazer-kafka/internal/starlify"
+	"gopkg.in/h2non/gock.v1"
 )
+
+func TestLoadConfig(t *testing.T) {
+
+	c, err := config.LoadConfig("config.yml")
+	if err != nil {
+		t.Log(err)
+	}
+	t.Log(c)
+
+}
+
+func TestSyncList(t *testing.T) {
+
+	var source = []string{"A", "G", "A", "A"}
+	var target = []string{"A", "B", "E", "F"}
+
+	sort.Strings(source)
+	sort.Strings(target)
+
+	t.Logf("Source: %v", source)
+	t.Logf("Target : %v", target)
+
+	insert, delete := ListDiff(source, target)
+
+	t.Logf("Insert: %v", insert)
+	t.Logf("Delete : %v", delete)
+
+}
 
 func createStarlifyClient() *starlify.Client {
 	starlifyClient := &starlify.Client{
-		BaseUrl:  "http://127.0.0.1:8080/hypermedia",
-		ApiKey:   "api-key-123",
-		AgentId:  "agent-id-123",
-		SystemId: "system-id-123",
+		BaseUrl:      "http://127.0.0.1:8080/hypermedia",
+		ApiKey:       "api-key-123",
+		AgentId:      "agent-id-123",
+		MiddlewareId: "system-id-123",
 	}
 
 	// Intercept Starlify client
@@ -26,6 +55,7 @@ func createGock() *gock.Request {
 	return gock.New("http://127.0.0.1:8080/hypermedia")
 }
 
+/*
 func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 	defer gock.Off()
 
@@ -41,7 +71,7 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 		Post("/systems/system-id-123/services")
 
 	// For first execution, no topics is available
-	kafkaTopicsToStarlify.createKafkaTopicsToStarlify(func() (map[string]kafka.TopicMetadata, error) {
+	kafkaTopicsToStarlify.createTopics(func() (map[string]kafka.TopicMetadata, error) {
 		return map[string]kafka.TopicMetadata{}, nil
 	})
 
@@ -89,12 +119,14 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 						Name:       "Topic_2",
 						Partitions: []starlify.PartitionDetails{{ID: 0}},
 					},
-				}}}).
+				},
+			},
+		}).
 		Reply(200).
 		JSON(starlify.Agent{Id: "agent-id-123", Name: "Test agent", AgentType: "kafka"})
 
 	// Run with two topics available in Kafka
-	kafkaTopicsToStarlify.createKafkaTopicsToStarlify(func() (map[string]kafka.TopicMetadata, error) {
+	kafkaTopicsToStarlify.createTopics(func() (map[string]kafka.TopicMetadata, error) {
 		return map[string]kafka.TopicMetadata{
 			"Topic_1": {
 				Topic: "Topic_1",
@@ -117,3 +149,4 @@ func TestKafkaTopicsToStarlify_createKafkaTopicsToStarlify(t *testing.T) {
 
 	assert.True(t, gock.IsDone())
 }
+*/

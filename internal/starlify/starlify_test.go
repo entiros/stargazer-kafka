@@ -1,23 +1,52 @@
 package starlify
 
 import (
+	"context"
+	stargazerkafka "github.com/entiros/stargazer-kafka/internal/config"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/h2non/gock.v1"
+	"log"
+	"os"
 	"reflect"
 	"testing"
 )
 
 func createStarlifyClient() *Client {
 	starlify := &Client{
-		BaseUrl:  "http://127.0.0.1:8080/hypermedia",
-		ApiKey:   "api-key-123",
-		AgentId:  "agent-id-123",
-		SystemId: "system-id-123",
+		BaseUrl:      "http://127.0.0.1:8080/hypermedia",
+		ApiKey:       "api-key-123",
+		AgentId:      "agent-id-123",
+		MiddlewareId: "system-id-123",
 	}
 
 	// Intercept Starlify client
 	gock.InterceptClient(starlify.GetRestyClient().GetClient())
 
 	return starlify
+}
+
+func TestGetTopics(t *testing.T) {
+	config, err := stargazerkafka.LoadConfig("config/config.yml")
+	if err != nil {
+		log.Println(err)
+		os.Exit(2)
+	}
+	c := Client{
+		BaseUrl:      config.Starlify.BaseUrl,
+		ApiKey:       config.Starlify.ApiKey,
+		AgentId:      config.Starlify.AgentId,
+		MiddlewareId: config.Starlify.MiddlewareId,
+	}
+
+	_, topics, err := c.GetTopics(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, topic := range topics {
+		t.Logf("Topic %s", topic)
+	}
+
 }
 
 func createGock() *gock.Request {
@@ -57,7 +86,7 @@ func TestClient_ClearError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			if err := starlify.ClearError(); (err != nil) != tt.wantErr {
+			if err := starlify.ClearError(context.Background()); (err != nil) != tt.wantErr {
 				t.Errorf("ClearError() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -106,7 +135,7 @@ func TestClient_CreateService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			got, err := starlify.CreateService(tt.args.name)
+			got, err := starlify.CreateService(context.Background(), tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateService() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -152,7 +181,7 @@ func TestClient_GetAgent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			got, err := starlify.GetAgent()
+			got, err := starlify.GetAgent(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAgent() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -249,7 +278,7 @@ func TestClient_GetServices(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			got, err := starlify.GetServices()
+			got, err := starlify.GetServices(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetServices() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -286,7 +315,7 @@ func TestClient_Ping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			if err := starlify.Ping(); (err != nil) != tt.wantErr {
+			if err := starlify.Ping(context.Background()); (err != nil) != tt.wantErr {
 				t.Errorf("Ping() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -323,7 +352,7 @@ func TestClient_ReportError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			if err := starlify.ReportError(tt.args.message); (err != nil) != tt.wantErr {
+			if err := starlify.ReportError(context.Background(), tt.args.message); (err != nil) != tt.wantErr {
 				t.Errorf("ReportError() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -378,9 +407,32 @@ func TestClient_UpdateDetails(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.gock(createGock())
-			if err := starlify.UpdateDetails(tt.args.details); (err != nil) != tt.wantErr {
+			if err := starlify.UpdateDetails(context.Background(), tt.args.details); (err != nil) != tt.wantErr {
 				t.Errorf("UpdateDetails() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+func TestClientGet(t *testing.T) {
+	type testCase struct {
+		Name string
+
+		Client *Client
+
+		Path       string
+		ReturnType any
+
+		ExpectedError error
+	}
+
+	validate := func(t *testing.T, tc *testCase) {
+		t.Run(tc.Name, func(t *testing.T) {
+			actualError := tc.Client.get(context.Background(), tc.Path, tc.ReturnType)
+
+			assert.Equal(t, tc.ExpectedError, actualError)
+		})
+	}
+
+	validate(t, &testCase{})
 }
