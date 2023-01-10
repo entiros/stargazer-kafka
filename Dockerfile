@@ -24,7 +24,7 @@ COPY --from=builder /stargazer-kafka /stargazer-kafka
 
 # Configuration directory and default configuration file
 RUN mkdir -p /configs/
-COPY ./configs/config.yml /configs/config.yml
+COPY ./configs/config_example.yaml /configs/config.yml
 
 # Run
 CMD [ "/stargazer-kafka", "/configs/config.yml" ]
