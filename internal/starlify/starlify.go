@@ -26,7 +26,7 @@ type TopicEndpoint struct {
 	Prefix string
 }
 
-func (starlify *Client) GetRestyClient() *resty.Client {
+func (starlify *Client) RestyClient() *resty.Client {
 	if starlify.resty == nil {
 		starlify.resty = resty.New()
 	}
@@ -38,21 +38,20 @@ func (starlify *Client) GetRestyClient() *resty.Client {
 func (starlify *Client) get(ctx context.Context, path string, returnType any) error {
 	// GET request
 	requestPath := starlify.BaseUrl + path
-	log.Logger.Debugf("Performing get to: %s", requestPath)
+	log.Logger.Debugf("Performing get to: '%s'", requestPath)
 	response, err := starlify.
-		GetRestyClient().
-		SetTimeout(10*time.Second).
-		SetRetryCount(3).
+		RestyClient().
+		SetTimeout(30*time.Second).
 		R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		Get(requestPath)
 	if err != nil {
-		log.Logger.Errorf("Failed get request to %s. err: %v", requestPath, err)
+		log.Logger.Errorf("Failed GET request to %s. error: -->%v<--", requestPath, err)
 		return err
 	}
 
-	if response.StatusCode() == http.StatusOK {
+	if response.StatusCode() == http.StatusOK && len(response.Body()) >= 2 {
 		err = json.Unmarshal(response.Body(), &returnType)
 		if err != nil {
 			log.Logger.Errorf("Failed to unmarshal response: %s. Err: %v", string(response.Body()), err)
@@ -70,7 +69,7 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 // post performs POST request to path and return parsed response
 func (starlify *Client) post(ctx context.Context, path string, body any, returnType any) error {
 
-	resp, err := starlify.GetRestyClient().R().
+	resp, err := starlify.RestyClient().R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).
@@ -89,7 +88,7 @@ func (starlify *Client) post(ctx context.Context, path string, body any, returnT
 // post performs POST request to path and return parsed response
 func (starlify *Client) delete(ctx context.Context, path string) error {
 
-	_, err := starlify.GetRestyClient().R().
+	_, err := starlify.RestyClient().R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		Delete(starlify.BaseUrl + path)
@@ -103,7 +102,7 @@ func (starlify *Client) delete(ctx context.Context, path string) error {
 // patch performs PATCH request to path and return parsed response
 func (starlify *Client) patch(ctx context.Context, path string, body any, returnType any) error {
 
-	response, err := starlify.GetRestyClient().R().
+	response, err := starlify.RestyClient().R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		SetBody(body).

@@ -27,22 +27,7 @@ func InitKafkaTopicsToStarlify(ctx context.Context, kafkaClient *kafka.Client, s
 	if err != nil {
 		return nil, err
 	} else if agent.AgentType != KafkaType {
-		return nil, fmt.Errorf("starlify agent '%s' is of type '%s', expected 'kafka'", agent.Id, agent.AgentType)
-	}
-
-	/*
-	   TODO: what to replace this with?
-	   	// Get services from Starlify to verify that system exists
-	   	_, err = starlify.GetServices(ctx)
-	   	if err != nil {
-	   		return nil, err
-	   	}
-	*/
-
-	// Get topics from Kafka to verify connection
-	err = kafkaClient.Ping(ctx)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("starlify agent '%s' is of type '%s', expected '%s'", agent.Id, agent.AgentType, KafkaType)
 	}
 
 	kafkaTopicsToStarlify := KafkaTopicsToStarlify{
