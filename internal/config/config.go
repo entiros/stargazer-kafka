@@ -89,7 +89,7 @@ func GetConfigs(dir string) ([]string, error) {
 	var files []string
 	for _, entry := range entries {
 		if !entry.IsDir() && entry.Type().IsRegular() && (strings.HasSuffix(entry.Name(), "yml") || strings.HasSuffix(entry.Name(), "yaml")) {
-			files = append(files, entry.Name())
+			files = append(files, dir+string(os.PathSeparator)+entry.Name())
 		}
 	}
 
