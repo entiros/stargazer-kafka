@@ -2,12 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/fsnotify/fsnotify"
+	"github.com/entiros/stargazer-kafka/internal/log"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 // Config is the configuration file struct
@@ -95,6 +93,11 @@ func GetConfigs(dir string) ([]string, error) {
 		}
 	}
 
+	log.Logger.Debugf("Found %d config files in %s", len(files), dir)
+	for _, file := range files {
+		log.Logger.Debugf("config file: %s", file)
+	}
+
 	return files, nil
 }
 
@@ -135,86 +138,5 @@ func Diff(newFiles, oldFiles []string) ([]string, []string) {
 		}
 	}
 	return addMe, deleteMe
-
-}
-
-func WatchConfigs(dir string, configFiles func([]string)) error {
-
-	// Create new watcher.
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-
-	timeout := time.After(time.Hour * 100000)
-	err = watcher.Add(dir)
-	if err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case _, ok := <-watcher.Events:
-			if !ok {
-				return nil
-			}
-			timeout = time.After(time.Second * 2)
-
-		case err, _ := <-watcher.Errors:
-			return err
-
-		case <-timeout:
-
-			files, err := GetConfigs(dir)
-			if err != nil {
-				return err
-			}
-
-			configFiles(files)
-		}
-	}
-
-}
-
-func WatchConfigDir(dir string, create func(string), remove func(string), write func(string),
-	rename func(string), chmod func(string)) error {
-
-	// Create new watcher.
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-
-	// Start listening for events.
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op == fsnotify.Create {
-					create(event.Name)
-				}
-				if event.Op == fsnotify.Remove {
-					remove(event.Name)
-				}
-				if event.Op == fsnotify.Write {
-					write(event.Name)
-				}
-				if event.Op == fsnotify.Rename {
-					rename(event.Name)
-				}
-				if event.Op == fsnotify.Chmod {
-					chmod(event.Name)
-				}
-
-			case err, _ := <-watcher.Errors:
-				log.Println("error:", err)
-			}
-		}
-	}()
-
-	return watcher.Add(dir)
 
 }
