@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/config"
 	"github.com/entiros/stargazer-kafka/internal/kafka"
+	"github.com/entiros/stargazer-kafka/internal/log"
 	stargazerkafka "github.com/entiros/stargazer-kafka/internal/stargazer-kafka"
 	"github.com/entiros/stargazer-kafka/internal/starlify"
 )
@@ -63,23 +64,31 @@ func (s *System) init(ctx context.Context) error {
 			kafka.WithSession(kafka.Session),
 			kafka.WithIAM(s.cfg.Kafka.Auth.IAM.Key, s.cfg.Kafka.Auth.IAM.Secret),
 		)
+		log.Logger.Debugf("Created Kafka client with IAM")
+
 	} else if s.cfg.Kafka.Auth.Plain.Username != "" && s.cfg.Kafka.Auth.Plain.Password != "" {
 		kafkaClient = kafka.NewKafkaClient(
 			kafka.WithBootstrapServers(s.cfg.Kafka.BootstrapServers...),
 			kafka.WithSession(kafka.Session),
 			kafka.WithPassword(s.cfg.Kafka.Auth.Plain.Username, s.cfg.Kafka.Auth.Plain.Password),
 		)
+		log.Logger.Debugf("Created Kafka client with Plain")
+
 	} else if s.cfg.Kafka.Auth.OAuth.Token != "" {
 		kafkaClient = kafka.NewKafkaClient(
 			kafka.WithBootstrapServers(s.cfg.Kafka.BootstrapServers...),
 			kafka.WithSession(kafka.Session),
 			kafka.WithOAuth(s.cfg.Kafka.Auth.OAuth.Token),
 		)
+		log.Logger.Debugf("Created Kafka client with OAuth")
+
 	} else {
 		kafkaClient = kafka.NewKafkaClient(
 			kafka.WithBootstrapServers(s.cfg.Kafka.BootstrapServers...),
 			kafka.WithSession(kafka.Session),
 		)
+		log.Logger.Debugf("Created Kafka client without authentication")
+
 	}
 
 	// Create integration
@@ -98,9 +107,9 @@ var ToStarlify = "kafka_to_starlify"
 
 func (s *System) SyncTopics(ctx context.Context) error {
 
-	if s.cfg.Sync.Direction == "starlify_to_kafka" {
+	if s.cfg.Sync.Direction == ToKafka {
 		return s.ks.SyncTopicsToKafka(ctx)
-	} else if s.cfg.Sync.Direction == "kafka_to_starlify" {
+	} else if s.cfg.Sync.Direction == ToStarlify {
 		return s.ks.SyncTopicsToStarlify(ctx)
 	}
 

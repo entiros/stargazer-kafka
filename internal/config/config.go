@@ -30,11 +30,11 @@ type Config struct {
 			IAM struct {
 				Key    string `yaml:"key"`
 				Secret string `yaml:"secret"`
-			}
+			} `yaml:"iam"`
 			Plain struct {
 				Username string `yaml:"username"`
 				Password string `yaml:"password"`
-			}
+			} `yaml:"plain"`
 		} `yaml:"auth"`
 	} `yaml:"kafka"`
 }

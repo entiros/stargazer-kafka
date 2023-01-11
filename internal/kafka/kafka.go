@@ -135,18 +135,12 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 
 }
 
-func (c *Client) AllTopics(ctx context.Context) func() (kadm.TopicDetails, error) {
-
-	return func() (kadm.TopicDetails, error) {
-		return c.GetAllTopics(ctx)
-	}
-
-}
-
 // GetTopics fetches all the topics from a specified kafka cluster.
 func (c *Client) GetAllTopics(ctx context.Context) (kadm.TopicDetails, error) {
 
-	// Get Kafka admin client
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
 	client, err := c.AdminClient()
 	if err != nil {
 		return nil, err
@@ -164,6 +158,9 @@ func (c *Client) GetAllTopics(ctx context.Context) (kadm.TopicDetails, error) {
 // GetTopics fetches all the topics from a specified kafka cluster.
 func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
 
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
 	// Get Kafka admin client
 	client, err := c.AdminClient()
 	if err != nil {
@@ -179,8 +176,10 @@ func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
 	return metadata.Topics, nil
 }
 
-// GetTopics fetches all the topics from a specified kafka cluster.
 func (c *Client) Ping(ctx context.Context) error {
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 
 	// Get Kafka admin client
 	client, err := c.AdminClient()
@@ -196,6 +195,9 @@ func (c *Client) Ping(ctx context.Context) error {
 
 // CreateTopic fetches all the topics from a specified kafka cluster.
 func (c *Client) CreateTopics(ctx context.Context, topics ...string) error {
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 
 	if len(topics) == 0 {
 		return nil
@@ -217,6 +219,9 @@ func (c *Client) CreateTopics(ctx context.Context, topics ...string) error {
 
 // CreateTopic fetches all the topics from a specified kafka cluster.
 func (c *Client) DeleteTopics(ctx context.Context, topics ...string) error {
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
 
 	if len(topics) == 0 {
 		return nil
