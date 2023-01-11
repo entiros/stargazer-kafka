@@ -3,8 +3,8 @@ package stargazer_kafka
 import (
 	"context"
 	"fmt"
+	"github.com/entiros/stargazer-kafka/internal/log"
 	"github.com/twmb/franz-go/pkg/kadm"
-	"log"
 	"sort"
 	"strings"
 
@@ -57,12 +57,12 @@ func InitKafkaTopicsToStarlify(ctx context.Context, kafkaClient *kafka.Client, s
 
 // reportError will send error message to Starlify and mark last update to have reported error.
 func (k *KafkaTopicsToStarlify) ReportError(ctx context.Context, message error) {
-	log.Println(message)
+	log.Logger.Debug(message)
 
 	// // Report error
 	err := k.starlify.ReportError(ctx, message.Error())
 	if err != nil {
-		log.Printf("Failed to report error: %v", err)
+		log.Logger.Debugf("Failed to report error: %v", err)
 	} else {
 		k.lastUpdateReportedError = true
 	}
@@ -71,14 +71,14 @@ func (k *KafkaTopicsToStarlify) ReportError(ctx context.Context, message error) 
 func (k *KafkaTopicsToStarlify) Ping(ctx context.Context) error {
 	err := k.starlify.Ping(ctx)
 	if err != nil {
-		log.Printf("Starlify Ping failed: %s", err.Error())
+		log.Logger.Debugf("Starlify Ping failed: %s", err.Error())
 	}
 	return err
 }
 
 func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) ([]starlify.TopicEndpoint, error) {
 
-	log.Printf("Getting Starlify topics")
+	log.Logger.Debugf("Getting Starlify topics")
 	return k.starlify.GetTopics(ctx)
 
 }
@@ -105,13 +105,13 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
 
 	createMe, deleteMe := ListDiff(kafkaTopics, starlifyTopics)
 
-	log.Printf("Creating topics: %v", createMe)
+	log.Logger.Debugf("Creating topics: %v", createMe)
 	err = k.kafka.CreateTopics(ctx, createMe...)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Deleting topics: %v", deleteMe)
+	log.Logger.Debugf("Deleting topics: %v", deleteMe)
 	err = k.kafka.DeleteTopics(ctx, deleteMe...)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 
 	createMe, deleteMe := ListDiff(starlifyTopics, kafkaTopics)
 
-	log.Printf("Creating topics: %v", createMe)
+	log.Logger.Debugf("Creating topics: %v", createMe)
 	for _, topic := range createMe {
 		err = k.starlify.CreateTopic(ctx, topic)
 		if err != nil {
@@ -153,7 +153,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 		}
 	}
 
-	log.Printf("Deleting topics: %v", deleteMe)
+	log.Logger.Debugf("Deleting topics: %v", deleteMe)
 	for _, topic := range deleteMe {
 		err = k.starlify.DeleteTopic(ctx, topicEndpoints[topic])
 		if err != nil {
@@ -165,7 +165,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 
 func (k *KafkaTopicsToStarlify) getKafkaTopics(ctx context.Context, prefix string) ([]string, error) {
 
-	log.Println("Fetching topics from Kafka")
+	log.Logger.Debug("Fetching topics from Kafka")
 	topics, err := k.kafka.GetTopics(ctx)
 	if err != nil {
 		err = fmt.Errorf("Failed to get topics from Kafka with error: %v" + err.Error())
@@ -178,7 +178,7 @@ func (k *KafkaTopicsToStarlify) getKafkaTopics(ctx context.Context, prefix strin
 			kafkaTopics = append(kafkaTopics, t.Topic)
 		}
 	}
-	log.Printf("%d topics received from Kafka: %v", len(kafkaTopics), kafkaTopics)
+	log.Logger.Debugf("%d topics received from Kafka: %v", len(kafkaTopics), kafkaTopics)
 
 	return kafkaTopics, nil
 }

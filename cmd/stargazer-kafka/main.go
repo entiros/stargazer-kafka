@@ -20,6 +20,21 @@ import (
 var DefaultHealthPort = 8081
 var DefaultMetricsPort = 9090
 
+func makeDir(dir string) error {
+
+	_, err := os.Stat(dir)
+
+	if os.IsNotExist(err) {
+		err := os.Mkdir(dir, 0777)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return err
+
+}
+
 func main() {
 
 	log.Logger.Debugf("Starting Stargazer")
@@ -35,6 +50,7 @@ func main() {
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
+	log.Logger.Debugf("Using config from: %s", info.Name())
 
 	srvGroup, srvContext := errgroup.WithContext(ctx)
 
@@ -154,6 +170,7 @@ func GetSystems(ctx context.Context, dir string) (next func() (*system.System, e
 
 	configFiles, err := config.GetConfigs(dir)
 	if err != nil {
+		log.Logger.Errorf("Failed to get config files: %v", err)
 		return nil, func() bool {
 			return false
 		}
