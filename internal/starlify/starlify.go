@@ -36,7 +36,10 @@ func (starlify *Client) RestyClient() *resty.Client {
 
 // get performs GET request to path and return parsed response
 func (starlify *Client) get(ctx context.Context, path string, returnType any) error {
-	// GET request
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	defer cancel()
+
 	requestPath := starlify.BaseUrl + path
 	log.Logger.Debugf("Performing get to: '%s'", requestPath)
 	response, err := starlify.
