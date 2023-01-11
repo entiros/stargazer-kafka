@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/entiros/stargazer-kafka/internal/log"
 	"github.com/go-resty/resty/v2"
-	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Client Starlify system client configuration
@@ -37,23 +38,29 @@ func (starlify *Client) GetRestyClient() *resty.Client {
 func (starlify *Client) get(ctx context.Context, path string, returnType any) error {
 	// GET request
 	requestPath := starlify.BaseUrl + path
-	log.Printf("Performing get to : %s", requestPath)
-	response, err := starlify.GetRestyClient().R().
+	log.Logger.Debugf("Performing get to: %s", requestPath)
+	response, err := starlify.
+		GetRestyClient().
+		SetTimeout(10*time.Second).
+		SetRetryCount(3).
+		R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		Get(requestPath)
 	if err != nil {
+		log.Logger.Errorf("Failed get request to %s. err: %v", requestPath, err)
 		return err
 	}
 
 	if response.StatusCode() == http.StatusOK {
 		err = json.Unmarshal(response.Body(), &returnType)
 		if err != nil {
+			log.Logger.Errorf("Failed to unmarshal response: %s. Err: %v", string(response.Body()), err)
 			return err
 		}
 
 	} else {
-		return fmt.Errorf("error while performing request to %s, error: %v", response.Request.URL, response.Error())
+		return fmt.Errorf("error while performing request to %s, status: %s:%d, error: %v", response.Request.URL, response.Status(), response.StatusCode(), response.Error())
 	}
 
 	return nil
@@ -166,7 +173,7 @@ func (starlify *Client) DeleteTopic(ctx context.Context, endpoint TopicEndpoint)
 
 // GetServices will get all services for system
 func (starlify *Client) GetServices(ctx context.Context) ([]Service, error) {
-	log.Printf("Get services for system %s", starlify.MiddlewareId)
+	log.Logger.Debugf("Get services for system %s", starlify.MiddlewareId)
 
 	var services []Service = nil
 
@@ -174,7 +181,7 @@ func (starlify *Client) GetServices(ctx context.Context) ([]Service, error) {
 
 	var serviceIndex = 0
 	for page := 0; page < totalPages; page++ {
-		log.Printf("Fetching services page %d", page)
+		log.Logger.Debugf("Fetching services page %d", page)
 
 		// Get services page
 		var servicesPage ServicesPage
@@ -189,7 +196,7 @@ func (starlify *Client) GetServices(ctx context.Context) ([]Service, error) {
 
 		// Initialize return array
 		if services == nil {
-			log.Printf("%d services to be fetched (%d pages)", servicesPage.Page.TotalElements, totalPages)
+			log.Logger.Debugf("%d services to be fetched (%d pages)", servicesPage.Page.TotalElements, totalPages)
 			services = make([]Service, servicesPage.Page.TotalElements)
 		}
 
@@ -200,13 +207,13 @@ func (starlify *Client) GetServices(ctx context.Context) ([]Service, error) {
 		}
 	}
 
-	log.Printf("%d services fetched", len(services))
+	log.Logger.Debugf("%d services fetched", len(services))
 	return services, nil
 }
 
 // CreateService will create and return new service
 func (starlify *Client) CreateService(ctx context.Context, name string) (*Service, error) {
-	log.Printf("Create service '%s' in system %s", name, starlify.MiddlewareId)
+	log.Logger.Debugf("Create service '%s' in system %s", name, starlify.MiddlewareId)
 
 	var service Service
 	err := starlify.post(ctx, "/systems/"+starlify.MiddlewareId+"/services", &ServiceRequest{Name: name}, &service)
@@ -214,7 +221,7 @@ func (starlify *Client) CreateService(ctx context.Context, name string) (*Servic
 		return nil, err
 	}
 
-	log.Printf("Service '%s' (%s) created in system %s", service.Name, service.Id, starlify.MiddlewareId)
+	log.Logger.Debugf("Service '%s' (%s) created in system %s", service.Name, service.Id, starlify.MiddlewareId)
 	return &service, nil
 }
 
@@ -226,13 +233,13 @@ func (starlify *Client) Ping(ctx context.Context) error {
 		return err
 	}
 
-	log.Printf("Ping")
+	log.Logger.Debugf("Ping")
 	return nil
 }
 
 // GetAgent will return the Starlify agent
 func (starlify *Client) GetAgent(ctx context.Context) (*Agent, error) {
-	log.Printf("Get agent %s", starlify.AgentId)
+	log.Logger.Debugf("Get agent %s", starlify.AgentId)
 
 	var agent Agent
 	err := starlify.get(ctx, "/agents/"+starlify.AgentId, &agent)
@@ -245,7 +252,7 @@ func (starlify *Client) GetAgent(ctx context.Context) (*Agent, error) {
 
 // UpdateDetails will update the agent details
 func (starlify *Client) UpdateDetails(ctx context.Context, details Details) error {
-	log.Println("Updating details")
+	log.Logger.Debug("Updating details")
 	var agent Agent
 	err := starlify.patch(ctx, "/agents/"+starlify.AgentId, AgentRequest{Details: &details}, &agent)
 	if err != nil {

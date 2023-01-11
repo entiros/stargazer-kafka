@@ -123,10 +123,38 @@ type ServicesPage struct {
 }
 
 type Agent struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	AgentType string `json:"agentType"`
-	LastSeen  string `json:"lastSeen"`
+	Type    string    `json:"type"`
+	Id      string    `json:"id"`
+	Created time.Time `json:"created"`
+	Updated time.Time `json:"updated"`
+	Domain  struct {
+		Type  string `json:"type"`
+		Id    string `json:"id"`
+		Links []struct {
+			Rel  string `json:"rel"`
+			Href string `json:"href"`
+		} `json:"links"`
+	} `json:"domain"`
+	MiddlewareId string `json:"middlewareId"`
+	Person       struct {
+		Type    string    `json:"type"`
+		Id      string    `json:"id"`
+		Created time.Time `json:"created"`
+		Updated time.Time `json:"updated"`
+		Name    string    `json:"name"`
+		Agent   bool      `json:"agent"`
+		Links   []struct {
+			Rel  string `json:"rel"`
+			Href string `json:"href"`
+		} `json:"links"`
+	} `json:"person"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	AgentType   string `json:"agentType"`
+	Links       []struct {
+		Rel  string `json:"rel"`
+		Href string `json:"href"`
+	} `json:"links"`
 }
 
 type AgentRequest struct {
