@@ -17,7 +17,7 @@ RUN go build -o /stargazer-kafka ./cmd/stargazer-kafka/main.go
 
 
 # Docker run
-FROM golang:1.18
+FROM ubuntu
 
 # Copy executable from builder
 COPY --from=builder /stargazer-kafka /stargazer-kafka
