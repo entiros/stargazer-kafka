@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/config"
 	"github.com/entiros/stargazer-kafka/internal/log"
 	"github.com/entiros/stargazer-kafka/internal/metrics"
@@ -46,11 +47,13 @@ func main() {
 
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
-	info, err := os.Stat(os.Args[1])
+	_, err := os.Stat(os.Args[1])
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
-	log.Logger.Debugf("Using config from: %s", info.Name())
+	fileName := os.Args[1]
+
+	log.Logger.Debugf("Using config from: %s", fileName)
 
 	srvGroup, srvContext := errgroup.WithContext(ctx)
 
@@ -63,7 +66,7 @@ func main() {
 	})
 
 	srvGroup.Go(func() error {
-		return runSync(srvContext, info)
+		return runSync(srvContext, fileName)
 	})
 
 	log.Logger.Debugf("Stargazer running.")
@@ -77,11 +80,11 @@ func main() {
 
 }
 
-func runSync(ctx context.Context, info os.FileInfo) error {
+func runSync(ctx context.Context, fileName string) error {
 
 loop:
 	for {
-		next, hasNext := getSystems(info, ctx)
+		next, hasNext := getSystems(fileName, ctx)
 
 		for hasNext() {
 			sys, err := next()
@@ -143,13 +146,25 @@ func metricsPort() int {
 	return DefaultMetricsPort
 }
 
-func getSystems(info os.FileInfo, ctx context.Context) (next func() (*system.System, error), hasNext func() bool) {
+func errorFoo(msg error) (next func() (*system.System, error), hasNext func() bool) {
+	return func() (*system.System, error) {
+			return nil, fmt.Errorf("%v", msg)
+		}, func() bool {
+			return false
+		}
 
+}
+
+func getSystems(fileName string, ctx context.Context) (next func() (*system.System, error), hasNext func() bool) {
+
+	info, err := os.Stat(fileName)
+	if err != nil {
+		return errorFoo(err)
+	}
 	if info.IsDir() {
-		return GetSystems(ctx, info.Name())
-
+		return GetSystems(ctx, fileName)
 	} else {
-		return GetSystem(ctx, info.Name())
+		return GetSystem(ctx, fileName)
 	}
 }
 
