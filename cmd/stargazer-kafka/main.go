@@ -115,6 +115,7 @@ loop:
 			break loop
 		case <-time.After(10 * time.Second):
 		}
+		time.Sleep(10 * time.Second)
 	}
 
 	return nil

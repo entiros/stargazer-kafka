@@ -114,7 +114,7 @@ func WithIAM(accessKey string, secret string) func(client *Client) {
 				secretAccessKey = val.SecretAccessKey
 			}
 
-			log.Logger.Debugf("Using Kafka IAM client %s/%s -- %s", accessKeyId, secretAccessKey, val.ProviderName)
+			log.Logger.Debugf("Using Kafka IAM client %s/%s -- %s -> %s", accessKeyId, secretAccessKey, val.ProviderName, val.SessionToken)
 			return faws.Auth{
 				AccessKey:    accessKeyId,
 				SecretKey:    secretAccessKey,
