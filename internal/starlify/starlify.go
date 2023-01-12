@@ -72,12 +72,12 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 	request.Close = true
 	request.Header.Set("X-API-KEY", starlify.ApiKey)
 	response, err := client.Do(request)
-	defer response.Body.Close()
 
 	if err != nil {
 		log.Logger.Errorf("Failed GET request to %s. error: -->%v<--", requestPath, err)
 		return err
 	}
+	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
