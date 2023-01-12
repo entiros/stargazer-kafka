@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/log"
 	"github.com/go-resty/resty/v2"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -45,38 +44,45 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 	defer cancel()
 
 	requestPath := starlify.BaseUrl + path
-	log.Logger.Debugf("Performing get to: '%s'", requestPath)
+	log.Logger.Debugf("Performing GET to: %s", requestPath)
 
 	var retryCounter int
 
-	client := &http.Client{}
-	request, err := http.NewRequestWithContext(ctx, "GET", requestPath, nil)
-	request.Close = true
-	request.Header.Set("X-API-KEY", starlify.ApiKey)
-	response, err := client.Do(request)
+	response, err := starlify.
+		RestyClient().
+		SetTimeout(time.Duration(Timeout)*time.Second).
+		SetRetryCount(RetryCount).
+		AddRetryCondition(func(response *resty.Response, retryErr error) bool {
+			if retryErr != nil {
+				log.Logger.Debugf("Error: %v. Retrying GET %s", retryErr, requestPath)
+				return true
+			}
+			retry := len(response.Body()) == 0 && response.StatusCode() == http.StatusOK
+			if retry {
+				retryCounter++
+				log.Logger.Debugf("Retry %d GET %s: %s/%d:  error:'%v'", retryCounter, requestPath, response.Status(), response.StatusCode(), retryErr)
+			}
+			return retry
+		}).
+		R().
+		SetContext(ctx).
+		SetHeader("X-API-KEY", starlify.ApiKey).
+		Get(requestPath)
 
 	if err != nil {
-		log.Logger.Errorf("Failed GET request to %s. error: -->%v<--", requestPath, err)
-		return err
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Logger.Debugf("Failed to read response body")
+		log.Logger.Errorf("Failed GET request to %s. error: '%v'", requestPath, err)
 		return err
 	}
 
-	if response.StatusCode == http.StatusOK && len(body) >= 2 {
-
-		err = json.Unmarshal(body, &returnType)
+	if response.StatusCode() == http.StatusOK && len(response.Body()) >= 2 {
+		err = json.Unmarshal(response.Body(), &returnType)
 		if err != nil {
-			log.Logger.Errorf("Failed to unmarshal response: %s. Err: %v", body, err)
+			log.Logger.Errorf("Failed to unmarshal response: %s. Err: %v", string(response.Body()), err)
 			return err
 		}
 
 	} else {
-		return fmt.Errorf("error while performing request to %s, status: %s:%d, error: %v", response.Request.URL, response.Status, response.StatusCode, err)
+		return fmt.Errorf("error while performing request to %s, status: %s:%d, error: %v", response.Request.URL, response.Status(), response.StatusCode(), response.Error())
 	}
 
 	if retryCounter > 0 {

@@ -89,7 +89,6 @@ func WithIAM(accessKey string, secret string) func(client *Client) {
 	os.Setenv("AWS_ACCESS_KEY", accessKey)
 	os.Setenv("AWS_SECRET_KEY", secret)
 
-	log.Logger.Debugf("Creating Kafka client with IAM. %s/%s", accessKey, secret)
 	return func(client *Client) {
 
 		client.AuthMethod = faws.ManagedStreamingIAM(func(ctx context.Context) (faws.Auth, error) {
@@ -120,8 +119,6 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 
 	var opts []kgo.Opt
 
-	log.Logger.Debugf("Creating Kafka client: %s - %v", authMethod.Name(), bootstrapServers)
-
 	opts = append(opts, kgo.SeedBrokers(bootstrapServers...))
 	//	opts = append(opts, kgo.WithLogger(kzap.New(log.Logger.Desugar())))
 	if authMethod != nil {
@@ -139,14 +136,12 @@ func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
-	log.Logger.Debugf("GetTopics: Create Admin client")
 	client, err := c.AdminClient()
 	if err != nil {
 		log.Logger.Debugf("Failed to create Kafka Admin client. %v", err)
 		return nil, err
 	}
 
-	log.Logger.Debugf("GetTopics: Get Meta data")
 	metadata, err := client.Metadata(ctx)
 	if err != nil {
 		log.Logger.Debugf("Failed to get metadata: %v", err)
