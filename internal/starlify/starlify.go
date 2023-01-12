@@ -37,18 +37,28 @@ func (starlify *Client) RestyClient() *resty.Client {
 // get performs GET request to path and return parsed response
 func (starlify *Client) get(ctx context.Context, path string, returnType any) error {
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*40)
+	RetryCount := 6
+	Timeout := 10
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(Timeout)*time.Duration(RetryCount)+5)
 	defer cancel()
 
 	requestPath := starlify.BaseUrl + path
 	log.Logger.Debugf("Performing get to: '%s'", requestPath)
+
 	response, err := starlify.
 		RestyClient().
-		SetTimeout(30*time.Second).
+		SetTimeout(time.Duration(Timeout)*time.Second).
+		SetRetryCount(RetryCount).
+		AddRetryCondition(func(response *resty.Response, err error) bool {
+			log.Logger.Debugf("Retrying GET %s: %s-%d ", requestPath, response.Status(), response.StatusCode())
+			return len(response.Body()) == 0 && response.StatusCode() == http.StatusOK
+		}).
 		R().
 		SetContext(ctx).
 		SetHeader("X-API-KEY", starlify.ApiKey).
 		Get(requestPath)
+
 	if err != nil {
 		log.Logger.Errorf("Failed GET request to %s. error: -->%v<--", requestPath, err)
 		return err
