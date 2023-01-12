@@ -153,7 +153,7 @@ func (k *KafkaTopicsToStarlify) getKafkaTopics(ctx context.Context, prefix strin
 	log.Logger.Debug("Fetching topics from Kafka")
 	topics, err := k.kafka.GetTopics(ctx)
 	if err != nil {
-		err = fmt.Errorf("Failed to get topics from Kafka with error: %v" + err.Error())
+		err = fmt.Errorf("failed to get topics from Kafka with error: %v", err.Error())
 		return nil, err
 	}
 

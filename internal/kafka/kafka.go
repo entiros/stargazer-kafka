@@ -111,12 +111,14 @@ func WithIAM(accessKey string, secret string) func(client *Client) {
 				secretAccessKey = val.SecretAccessKey
 			}
 
+			log.Logger.Debugf("Using Kafka IAM client %s/%s -- %s", accessKeyId, secretAccessKey, val.ProviderName)
 			return faws.Auth{
 				AccessKey:    accessKeyId,
 				SecretKey:    secretAccessKey,
 				SessionToken: val.SessionToken,
 				UserAgent:    "entiros/kafka/v1.0.0",
 			}, nil
+
 		})
 	}
 }
@@ -125,6 +127,7 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 
 	var opts []kgo.Opt
 
+	log.Logger.Debugf("Creating Kafka client: %s - %v,  ", authMethod.Name(), bootstrapServers)
 	opts = append(opts, kgo.SeedBrokers(bootstrapServers...))
 	if authMethod != nil {
 		opts = append(opts, kgo.SASL(authMethod))

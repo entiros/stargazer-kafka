@@ -46,13 +46,19 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 	requestPath := starlify.BaseUrl + path
 	log.Logger.Debugf("Performing get to: '%s'", requestPath)
 
+	var retryCounter int
+
 	response, err := starlify.
 		RestyClient().
 		SetTimeout(time.Duration(Timeout)*time.Second).
 		SetRetryCount(RetryCount).
 		AddRetryCondition(func(response *resty.Response, err error) bool {
-			log.Logger.Debugf("Retrying GET %s: %s-%d ", requestPath, response.Status(), response.StatusCode())
-			return len(response.Body()) == 0 && response.StatusCode() == http.StatusOK
+			log.Logger.Debugf("Retrying GET %s: %s/%d: %v ", requestPath, response.Status(), response.StatusCode(), err)
+			retry := len(response.Body()) == 0 && response.StatusCode() == http.StatusOK
+			if retry {
+				retryCounter++
+			}
+			return retry
 		}).
 		R().
 		SetContext(ctx).
@@ -74,6 +80,8 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 	} else {
 		return fmt.Errorf("error while performing request to %s, status: %s:%d, error: %v", response.Request.URL, response.Status(), response.StatusCode(), response.Error())
 	}
+
+	log.Logger.Debugf("Retry count: %d for GET %s", retryCounter, requestPath)
 
 	return nil
 
