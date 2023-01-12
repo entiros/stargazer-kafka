@@ -145,14 +145,14 @@ func (starlify *Client) patch(ctx context.Context, path string, body any, return
 	return err
 }
 
-func (starlify *Client) GetTopics(ctx context.Context) ([]TopicEndpoint, error) {
+func (starlify *Client) GetTopics(ctx context.Context) (string, []TopicEndpoint, error) {
 
 	var middleware Middleware
 	path := fmt.Sprintf("/middlewares/%s", starlify.MiddlewareId)
 
 	err := starlify.get(ctx, path, &middleware)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	var topics []TopicEndpoint
@@ -167,7 +167,7 @@ func (starlify *Client) GetTopics(ctx context.Context) ([]TopicEndpoint, error) 
 			})
 		}
 	}
-	return topics, nil
+	return middleware.KafkaPrefix, topics, nil
 }
 
 func (starlify *Client) CreateTopic(ctx context.Context, topic string) error {

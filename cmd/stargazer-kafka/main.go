@@ -42,7 +42,7 @@ func main() {
 	defer log.Logger.Debugf("Stargazer closing down.")
 
 	if len(os.Args) < 2 {
-		log.Logger.Fatal("Start with configuration file name or name of directory with multiple configuration files")
+		log.Logger.Fatal("Start with configuration file name or name of directory with multiple .yaml configuration files")
 	}
 
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

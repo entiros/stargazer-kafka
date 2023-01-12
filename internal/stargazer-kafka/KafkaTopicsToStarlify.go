@@ -61,7 +61,7 @@ func (k *KafkaTopicsToStarlify) Ping(ctx context.Context) error {
 	return err
 }
 
-func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) ([]starlify.TopicEndpoint, error) {
+func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) (string, []starlify.TopicEndpoint, error) {
 
 	log.Logger.Debugf("Getting Starlify topics")
 	return k.starlify.GetTopics(ctx)
@@ -71,16 +71,19 @@ func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) ([]starli
 // get topics(endpoints on a middleware) from Starlify and create matching topics in Kafka.
 func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
 
-	topics, err := k.getStarlifyTopics(ctx)
+	prefix, topics, err := k.getStarlifyTopics(ctx)
 	if err != nil {
 		return err
 	}
 
 	var starlifyTopics []string
-	var prefix string
 	for _, topic := range topics {
-		prefix = topic.Prefix
 		starlifyTopics = append(starlifyTopics, topic.Name)
+	}
+
+	log.Logger.Debugf("Prefix is: %s", prefix)
+	if prefix == "" || len(prefix) < 8 {
+		return fmt.Errorf("invalid prefix: %s", prefix)
 	}
 
 	kafkaTopics, err := k.getKafkaTopics(ctx, prefix)
@@ -108,7 +111,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
 // get topics from Kafka and create matching topics in Starlify.
 func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error {
 
-	topics, err := k.getStarlifyTopics(ctx)
+	prefix, topics, err := k.getStarlifyTopics(ctx)
 	if err != nil {
 		return err
 	}
@@ -116,9 +119,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 	var starlifyTopics []string
 	topicEndpoints := make(map[string]starlify.TopicEndpoint)
 
-	var prefix string
 	for _, topic := range topics {
-		prefix = topic.Prefix
 		starlifyTopics = append(starlifyTopics, topic.Name)
 		topicEndpoints[topic.Name] = topic
 	}

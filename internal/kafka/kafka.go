@@ -9,13 +9,12 @@ import (
 	"github.com/twmb/franz-go/pkg/sasl/oauth"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"net"
+	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/plugin/kzap"
-
-	"github.com/aws/aws-sdk-go/aws/session"
 	faws "github.com/twmb/franz-go/pkg/sasl/aws"
 )
 
@@ -87,6 +86,9 @@ func WithPassword(username string, password string) func(client *Client) {
 
 func WithIAM(accessKey string, secret string) func(client *Client) {
 
+	os.Setenv("AWS_ACCESS_KEY", accessKey)
+	os.Setenv("AWS_SECRET_KEY", secret)
+
 	log.Logger.Debugf("Creating Kafka client with IAM. %s/%s", accessKey, secret)
 	return func(client *Client) {
 
@@ -101,24 +103,11 @@ func WithIAM(accessKey string, secret string) func(client *Client) {
 				return faws.Auth{}, err
 			}
 
-			var accessKeyId string
-			var secretAccessKey string
-			if accessKey != "" {
-				accessKeyId = accessKey
-			} else {
-				accessKeyId = val.AccessKeyID
-			}
+			log.Logger.Debugf("Using Kafka IAM client %s", val.ProviderName)
 
-			if secret != "" {
-				secretAccessKey = secret
-			} else {
-				secretAccessKey = val.SecretAccessKey
-			}
-
-			log.Logger.Debugf("Using Kafka IAM client %s/%s -- %s -> %s", accessKeyId, secretAccessKey, val.ProviderName, val.SessionToken)
 			return faws.Auth{
-				AccessKey:    accessKeyId,
-				SecretKey:    secretAccessKey,
+				AccessKey:    val.AccessKeyID,
+				SecretKey:    val.SecretAccessKey,
 				SessionToken: val.SessionToken,
 				UserAgent:    "entiros/kafka/v1.0.0",
 			}, nil
@@ -134,7 +123,7 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 	log.Logger.Debugf("Creating Kafka client: %s - %v", authMethod.Name(), bootstrapServers)
 
 	opts = append(opts, kgo.SeedBrokers(bootstrapServers...))
-	opts = append(opts, kgo.WithLogger(kzap.New(log.Logger.Desugar())))
+	//	opts = append(opts, kgo.WithLogger(kzap.New(log.Logger.Desugar())))
 	if authMethod != nil {
 		opts = append(opts, kgo.SASL(authMethod))
 		opts = append(opts, kgo.Dialer((&tls.Dialer{NetDialer: &net.Dialer{Timeout: 60 * time.Second}}).DialContext))
