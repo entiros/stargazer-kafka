@@ -62,6 +62,7 @@ func Session() *session.Session {
 	s, err := session.NewSession()
 	if err != nil {
 		log.Logger.Errorf("Failed to create session: %v", err)
+		return nil
 	}
 	return s
 }
@@ -85,11 +86,13 @@ func WithPassword(username string, password string) func(client *Client) {
 
 func WithIAM(accessKey string, secret string) func(client *Client) {
 
+	log.Logger.Debugf("Creating Kafka client with IAM. %s/%s", accessKey, secret)
 	return func(client *Client) {
 
 		client.AuthMethod = faws.ManagedStreamingIAM(func(ctx context.Context) (faws.Auth, error) {
 			sess := client.AWSSession()
 			if sess == nil {
+				log.Logger.Errorf("Failed to create AWS session")
 				return faws.Auth{}, fmt.Errorf("failed to create AWS session")
 			}
 			val, err := sess.Config.Credentials.GetWithContext(ctx)
@@ -127,7 +130,8 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 
 	var opts []kgo.Opt
 
-	log.Logger.Debugf("Creating Kafka client: %s - %v,  ", authMethod.Name(), bootstrapServers)
+	log.Logger.Debugf("Creating Kafka client: %s - %v", authMethod.Name(), bootstrapServers)
+
 	opts = append(opts, kgo.SeedBrokers(bootstrapServers...))
 	if authMethod != nil {
 		opts = append(opts, kgo.SASL(authMethod))
@@ -144,14 +148,17 @@ func (c *Client) GetAllTopics(ctx context.Context) (kadm.TopicDetails, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
+	log.Logger.Debugf("GetAllTopics: Create Admin client")
 	client, err := c.AdminClient()
 	if err != nil {
+		log.Logger.Debugf("Failed to create Kafka Admin client. %v", err)
 		return nil, err
 	}
 
-	// Get metadata
+	log.Logger.Debugf("GetAllTopics: Get Meta data")
 	metadata, err := client.Metadata(ctx)
 	if err != nil {
+		log.Logger.Debugf("Failed to get metadata: %v", err)
 		return nil, err
 	}
 
