@@ -14,7 +14,8 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/twmb/franz-go v1.9.1
 	github.com/twmb/franz-go/pkg/kadm v1.3.1
-	go.uber.org/zap v1.17.0
+	github.com/twmb/franz-go/plugin/kzap v1.1.1
+	go.uber.org/zap v1.21.0
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	gopkg.in/h2non/gock.v1 v1.1.2
@@ -67,8 +68,8 @@ require (
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect

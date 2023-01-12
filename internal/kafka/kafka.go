@@ -13,6 +13,7 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/plugin/kzap"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	faws "github.com/twmb/franz-go/pkg/sasl/aws"
@@ -133,6 +134,7 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 	log.Logger.Debugf("Creating Kafka client: %s - %v", authMethod.Name(), bootstrapServers)
 
 	opts = append(opts, kgo.SeedBrokers(bootstrapServers...))
+	opts = append(opts, kgo.WithLogger(kzap.New(log.Logger.Desugar())))
 	if authMethod != nil {
 		opts = append(opts, kgo.SASL(authMethod))
 		opts = append(opts, kgo.Dialer((&tls.Dialer{NetDialer: &net.Dialer{Timeout: 60 * time.Second}}).DialContext))

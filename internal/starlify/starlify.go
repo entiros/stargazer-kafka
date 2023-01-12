@@ -48,24 +48,6 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 	log.Logger.Debugf("Performing get to: '%s'", requestPath)
 
 	var retryCounter int
-	/*
-		response, err := starlify.
-			RestyClient().
-			SetTimeout(time.Duration(Timeout)*time.Second).
-			SetRetryCount(RetryCount).
-			AddRetryCondition(func(response *resty.Response, err error) bool {
-				retry := len(response.Body()) == 0 && response.StatusCode() == http.StatusOK
-				if retry {
-					retryCounter++
-					log.Logger.Debugf("Retry %d GET %s: %s/%d: %v ", retryCounter, requestPath, response.Status(), response.StatusCode(), err)
-				}
-				return retry
-			}).
-			R().
-			SetContext(ctx).
-			SetHeader("X-API-KEY", starlify.ApiKey).
-			Get(requestPath)
-	*/
 
 	client := &http.Client{}
 	request, err := http.NewRequestWithContext(ctx, "GET", requestPath, nil)
