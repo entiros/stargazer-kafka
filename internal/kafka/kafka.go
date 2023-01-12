@@ -143,19 +143,19 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 }
 
 // GetTopics fetches all the topics from a specified kafka cluster.
-func (c *Client) GetAllTopics(ctx context.Context) (kadm.TopicDetails, error) {
+func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
-	log.Logger.Debugf("GetAllTopics: Create Admin client")
+	log.Logger.Debugf("GetTopics: Create Admin client")
 	client, err := c.AdminClient()
 	if err != nil {
 		log.Logger.Debugf("Failed to create Kafka Admin client. %v", err)
 		return nil, err
 	}
 
-	log.Logger.Debugf("GetAllTopics: Get Meta data")
+	log.Logger.Debugf("GetTopics: Get Meta data")
 	metadata, err := client.Metadata(ctx)
 	if err != nil {
 		log.Logger.Debugf("Failed to get metadata: %v", err)
@@ -163,44 +163,6 @@ func (c *Client) GetAllTopics(ctx context.Context) (kadm.TopicDetails, error) {
 	}
 
 	return metadata.Topics, nil
-}
-
-// GetTopics fetches all the topics from a specified kafka cluster.
-func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
-
-	// Get Kafka admin client
-	client, err := c.AdminClient()
-	if err != nil {
-		return nil, err
-	}
-
-	// Get metadata
-	metadata, err := client.Metadata(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return metadata.Topics, nil
-}
-
-func (c *Client) Ping(ctx context.Context) error {
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
-
-	// Get Kafka admin client
-	client, err := c.AdminClient()
-	if err != nil {
-		return nil
-	}
-
-	// Get metadata
-	_, err = client.Metadata(ctx)
-
-	return err
 }
 
 // CreateTopic fetches all the topics from a specified kafka cluster.

@@ -53,9 +53,9 @@ func (starlify *Client) get(ctx context.Context, path string, returnType any) er
 		SetTimeout(time.Duration(Timeout)*time.Second).
 		SetRetryCount(RetryCount).
 		AddRetryCondition(func(response *resty.Response, err error) bool {
-			log.Logger.Debugf("Retrying GET %s: %s/%d: %v ", requestPath, response.Status(), response.StatusCode(), err)
 			retry := len(response.Body()) == 0 && response.StatusCode() == http.StatusOK
 			if retry {
+				log.Logger.Debugf("Retry %d GET %s: %s/%d: %v ", retryCounter, requestPath, response.Status(), response.StatusCode(), err)
 				retryCounter++
 			}
 			return retry
@@ -253,7 +253,7 @@ func (starlify *Client) Ping(ctx context.Context) error {
 		return err
 	}
 
-	log.Logger.Debugf("Ping")
+	log.Logger.Debugf("Ping ok for %s", starlify.AgentId)
 	return nil
 }
 
