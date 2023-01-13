@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/log"
+	"github.com/entiros/stargazer-kafka/internal/prefix"
 	"github.com/twmb/franz-go/pkg/sasl"
 	"github.com/twmb/franz-go/pkg/sasl/oauth"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
@@ -127,6 +128,31 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 	}
 
 	return kgo.NewClient(opts...)
+
+}
+
+func (c *Client) GetPrefixes(ctx context.Context) ([]string, error) {
+
+	topics, err := c.GetTopics(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var prefixMap map[string]bool
+	for _, topic := range topics {
+		pre, err := prefix.ExtractPrefix(topic.Topic)
+		if err != nil {
+			continue
+		}
+		prefixMap[pre] = true
+	}
+
+	var prefixes []string
+	for prefix := range prefixMap {
+		prefixes = append(prefixes, prefix)
+	}
+
+	return prefixes, nil
 
 }
 

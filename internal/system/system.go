@@ -11,11 +11,9 @@ import (
 )
 
 type System struct {
-	cfg    *config.Config
-	cancel context.CancelFunc
-	ctx    context.Context
-	file   string
-	ks     *stargazerkafka.KafkaTopicsToStarlify
+	cfg  *config.Config
+	file string
+	ks   *stargazerkafka.KafkaTopicsToStarlify
 }
 
 func (s *System) Name() string {

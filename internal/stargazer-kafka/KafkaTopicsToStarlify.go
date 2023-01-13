@@ -3,19 +3,18 @@ package stargazer_kafka
 import (
 	"context"
 	"fmt"
+	"github.com/entiros/stargazer-kafka/internal/kafka"
 	"github.com/entiros/stargazer-kafka/internal/log"
+	pre "github.com/entiros/stargazer-kafka/internal/prefix"
+	"github.com/entiros/stargazer-kafka/internal/starlify"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"sort"
 	"strings"
-
-	"github.com/entiros/stargazer-kafka/internal/kafka"
-	"github.com/entiros/stargazer-kafka/internal/starlify"
 )
 
 type KafkaTopicsToStarlify struct {
 	starlify                *starlify.Client
 	kafka                   *kafka.Client
-	topicsCache             map[string]bool
 	lastUpdateReportedError bool
 }
 
@@ -33,7 +32,6 @@ func InitKafkaTopicsToStarlify(ctx context.Context, kafkaClient *kafka.Client, s
 	kafkaTopicsToStarlify := KafkaTopicsToStarlify{
 		starlify:                starlify,
 		kafka:                   kafkaClient,
-		topicsCache:             make(map[string]bool),
 		lastUpdateReportedError: false,
 	}
 
@@ -151,7 +149,10 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 
 func (k *KafkaTopicsToStarlify) getKafkaTopics(ctx context.Context, prefix string) ([]string, error) {
 
-	log.Logger.Debug("Fetching topics from Kafka")
+	if err := pre.Validate(prefix); err != nil {
+		return nil, err
+	}
+
 	topics, err := k.kafka.GetTopics(ctx)
 	if err != nil {
 		err = fmt.Errorf("failed to get topics from Kafka with error: %v", err.Error())

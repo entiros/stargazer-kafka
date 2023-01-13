@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/entiros/stargazer-kafka/internal/log"
+	"github.com/entiros/stargazer-kafka/internal/prefix"
 	"github.com/go-resty/resty/v2"
 	"net/http"
 	"strings"
@@ -158,6 +159,10 @@ func (starlify *Client) GetTopics(ctx context.Context) (string, []TopicEndpoint,
 
 	err := starlify.get(ctx, path, &middleware)
 	if err != nil {
+		return "", nil, err
+	}
+
+	if err := prefix.Validate(middleware.KafkaPrefix); err != nil {
 		return "", nil, err
 	}
 
