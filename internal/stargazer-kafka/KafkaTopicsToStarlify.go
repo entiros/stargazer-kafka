@@ -67,11 +67,12 @@ func (k *KafkaTopicsToStarlify) getStarlifyTopics(ctx context.Context) (string, 
 }
 
 // get topics(endpoints on a middleware) from Starlify and create matching topics in Kafka.
-func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
+func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) (string, error) {
 
+	// Get topics (endpoints) for this specific Middleware
 	prefix, topics, err := k.getStarlifyTopics(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var starlifyTopics []string
@@ -81,12 +82,13 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
 
 	log.Logger.Debugf("Prefix is: %s", prefix)
 	if prefix == "" || len(prefix) < 8 {
-		return fmt.Errorf("invalid prefix: %s", prefix)
+		return "", fmt.Errorf("invalid prefix: %s", prefix)
 	}
 
+	// Get all Kafka topics with the specified prefix. Prefix is from Starlify middleware.
 	kafkaTopics, err := k.getKafkaTopics(ctx, prefix)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	createMe, deleteMe := ListDiff(kafkaTopics, starlifyTopics)
@@ -94,24 +96,24 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToKafka(ctx context.Context) error {
 	log.Logger.Debugf("Creating topics: %v", createMe)
 	err = k.kafka.CreateTopics(ctx, createMe...)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	log.Logger.Debugf("Deleting topics: %v", deleteMe)
 	err = k.kafka.DeleteTopics(ctx, deleteMe...)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return prefix, nil
 }
 
 // get topics from Kafka and create matching topics in Starlify.
-func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error {
+func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) (string, error) {
 
 	prefix, topics, err := k.getStarlifyTopics(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var starlifyTopics []string
@@ -124,7 +126,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 
 	kafkaTopics, err := k.getKafkaTopics(ctx, prefix)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	createMe, deleteMe := ListDiff(starlifyTopics, kafkaTopics)
@@ -133,7 +135,7 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 	for _, topic := range createMe {
 		err = k.starlify.CreateTopic(ctx, topic)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -141,10 +143,10 @@ func (k *KafkaTopicsToStarlify) SyncTopicsToStarlify(ctx context.Context) error 
 	for _, topic := range deleteMe {
 		err = k.starlify.DeleteTopic(ctx, topicEndpoints[topic])
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return prefix, nil
 }
 
 func (k *KafkaTopicsToStarlify) getKafkaTopics(ctx context.Context, prefix string) ([]string, error) {

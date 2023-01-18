@@ -86,6 +86,7 @@ loop:
 	for {
 		next, hasNext := getSystems(fileName, ctx)
 
+		var prefixes []string
 		for hasNext() {
 			sys, err := next()
 			if err != nil {
@@ -99,16 +100,20 @@ loop:
 				metrics.ErrCount.Add(1)
 				log.Logger.Errorf("failed to ping starlify. %v", err)
 			}
-			err = sys.SyncTopics(ctx)
+			prefix, err := sys.SyncTopics(ctx)
 			if err != nil {
 				metrics.ErrCount.Add(1)
 				log.Logger.Errorf("failed to sync topics for %s, %v ", sys.Name(), err)
+				time.Sleep(3 * time.Second)
+				continue
 			}
-
 			metrics.SyncCount.Add(1)
 			time.Sleep(3 * time.Second)
-
+			prefixes = append(prefixes, prefix)
 		}
+
+		// Find all Kafka prefixes (systems) that we did not loop through.
+		log.Logger.Debugf("Processed prefixes: %v", prefixes)
 
 		select {
 		case <-ctx.Done():

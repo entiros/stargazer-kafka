@@ -103,7 +103,7 @@ func (s *System) init(ctx context.Context) error {
 var ToKafka = "starlify_to_kafka"
 var ToStarlify = "kafka_to_starlify"
 
-func (s *System) SyncTopics(ctx context.Context) error {
+func (s *System) SyncTopics(ctx context.Context) (string, error) {
 
 	if s.cfg.Sync.Direction == ToKafka {
 		return s.ks.SyncTopicsToKafka(ctx)
@@ -111,7 +111,7 @@ func (s *System) SyncTopics(ctx context.Context) error {
 		return s.ks.SyncTopicsToStarlify(ctx)
 	}
 
-	return fmt.Errorf("Skipping sync of '%s'. %s is an invalid sync direction. Valid values are %s or %s", s.file, s.cfg.Sync.Direction, ToKafka, ToStarlify)
+	return "", fmt.Errorf("Skipping sync of '%s'. %s is an invalid sync direction. Valid values are %s or %s", s.file, s.cfg.Sync.Direction, ToKafka, ToStarlify)
 }
 
 func (s *System) PingStarlify(ctx context.Context) error {

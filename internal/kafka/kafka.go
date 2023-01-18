@@ -133,6 +133,11 @@ func createClient(bootstrapServers []string, authMethod sasl.Mechanism) (*kgo.Cl
 
 func (c *Client) GetPrefixes(ctx context.Context) ([]string, error) {
 
+	return Prefixes(ctx, c)
+
+}
+
+func Prefixes(ctx context.Context, c *Client) ([]string, error) {
 	topics, err := c.GetTopics(ctx)
 	if err != nil {
 		return nil, err
@@ -153,11 +158,15 @@ func (c *Client) GetPrefixes(ctx context.Context) ([]string, error) {
 	}
 
 	return prefixes, nil
-
 }
 
 // GetTopics fetches all the topics from a specified kafka cluster.
 func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
+
+	return Topics(ctx, c)
+}
+
+func Topics(ctx context.Context, c *Client) (kadm.TopicDetails, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
@@ -167,6 +176,7 @@ func (c *Client) GetTopics(ctx context.Context) (kadm.TopicDetails, error) {
 		log.Logger.Debugf("Failed to create Kafka Admin client. %v", err)
 		return nil, err
 	}
+	defer client.Close()
 
 	metadata, err := client.Metadata(ctx)
 	if err != nil {
@@ -191,6 +201,7 @@ func (c *Client) CreateTopics(ctx context.Context, topics ...string) error {
 	if err != nil {
 		return err
 	}
+	defer kafkaClient.Close()
 
 	_, err = kafkaClient.CreateTopics(ctx, 1, 1, nil, topics...)
 	if err != nil {
@@ -216,6 +227,7 @@ func (c *Client) DeleteTopics(ctx context.Context, topics ...string) error {
 	if err != nil {
 		return err
 	}
+	defer kafkaClient.Close()
 
 	_, err = kafkaClient.DeleteTopics(ctx, topics...)
 	if err != nil {
